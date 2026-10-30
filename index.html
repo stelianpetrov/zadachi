@@ -31,7 +31,6 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance }
 h1 { font-size: 1.9rem; line-height: 1.15 }
-h1 em { font-style: italic; font-weight: 500; color: var(--accent) }
 .sub { color: var(--muted); margin: 4px 0 0 }
 .num { font-variant-numeric: tabular-nums }
 button, input, select, textarea { font: inherit; color: inherit }
@@ -157,14 +156,20 @@ a.link { color: var(--accent); font-size: .9rem; font-weight: 500 }
 .mb-head { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 14px; font-weight: 600; font-variant-numeric: tabular-nums }
 .mblock.get .mb-head { background: var(--ok-soft); color: var(--ok) } .mblock.pay .mb-head { background: var(--wait-soft); color: var(--wait) }
 .mb-empty { padding: 8px 14px; color: var(--muted); font-size: .88rem }
-.mperson { display: flex; justify-content: space-between; padding: 6px 14px 2px; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-variant-numeric: tabular-nums }
+.mperson { display: flex; justify-content: space-between; padding: 6px 14px 2px; font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums }
 .addm { flex-direction: column }
 .addm .addrow { display: flex; gap: 8px } .addm .addrow input { flex: 1; min-width: 0; border: 1px dashed var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px }
 .addm .addrow input.amt-in { flex: 0 0 84px }
 .hint { font-size: .85rem; color: var(--muted); margin: 0 }
 .state { text-align: center; color: var(--muted); padding: 30px 10px }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: .9rem; z-index: 20; max-width: calc(100% - 32px) }
-@media (prefers-reduced-motion: no-preference) { .item-row, .chipbtn, .check { transition: background-color .15s, border-color .15s } }
+@media (prefers-reduced-motion: no-preference) { .item-row, .check { transition: background-color .15s, border-color .15s } }
+.btn, .chipbtn, .stat, .tabs button, .appnav a { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chipbtn, .stat, .tabs button { transition: transform .12s ease-out, background-color .15s, border-color .15s }
+  .btn:active:not(:disabled), .chipbtn:active, .stat:active, .tabs button:active { transform: scale(.97) }
+  .toast { transition: opacity .2s ease-out, translate .2s ease-out; @starting-style { opacity: 0; translate: 0 8px } }
+}
 
 /* v2: main tabs, date tiles, shopping chips, vacation calendar */
 .wrap { max-width: 980px }
@@ -256,8 +261,8 @@ body.dragmode { touch-action: none; overscroll-behavior: contain }
 
 <div class="wrap app-wrap">
   <header>
-    <h1>Задачи и <em>напомняния</em></h1>
-    <p class="sub">Задачи по дати, списък за покупки, отпуски и пари на едно място.</p>
+    <h1>Задачи</h1>
+    <p class="sub" id="today-line"></p>
   </header>
   <div id="root"><div class="state">Зареждане на задачите…</div></div>
 </div>
@@ -285,6 +290,7 @@ const today = () => keyOf(new Date());
 const dt = k => new Date(k + 'T12:00');
 const addDays = (k, n) => { const d = dt(k); d.setDate(d.getDate() + n); return keyOf(d); };
 const nextSat = () => { const d = new Date(); return addDays(today(), (6 - d.getDay() + 7) % 7); };
+document.getElementById('today-line').textContent = new Intl.DateTimeFormat('bg', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).replace(/^./, c => c.toUpperCase());
 const WD = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const MS = ['ян', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
 const ML = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
@@ -409,7 +415,7 @@ function render() {
   const futureLeave = Object.values(S.leave).filter(v => v.date >= today()).length;
   const openTasks = taskEntries().filter(([, t]) => !t.done).length;
   let h = '';
-  if (S.readOnly) h += `<div class="banner">Можеш да разглеждаш, но не и да променяш. Собственикът може да даде достъп „Contributor“ или „Editor“ от бутона за споделяне.</div>`;
+  if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
   h += `<nav class="maintabs" aria-label="Раздели">${[['tasks', 'Задачи', openTasks + ' отворени'], ['shop', 'Покупки', openShop + ' за купуване'], ['leave', 'Отпуски', futureLeave + ' предстоящи'], ['money', 'Пари', '']].map(([v, l, c]) => `<button data-act="tab" data-v="${v}" aria-pressed="${S.tab === v}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('')}</nav>`;
   if (S.tab === 'money') h += moneyView(dis);
   else if (S.tab === 'shop') h += shopView(dis);
@@ -434,7 +440,7 @@ function quickAdd() {
   const ls = taskLists(); if (!S.qa.list || !S.lists[S.qa.list] || isShopList(S.qa.list)) S.qa.list = ls.length ? ls[0][0] : '';
   const tk = today(), dc = [['', 'Без дата'], [tk, 'Днес'], [addDays(tk, 1), 'Утре'], [nextSat(), 'В събота']];
   return `<form class="card qa" data-act="quickadd">
-    <div class="qa-row"><input id="qa-title" placeholder="Нова задача… напр. Да платя наема" aria-label="Нова задача" autocomplete="off"><button class="btn primary" type="submit">Добави</button></div>
+    <div class="qa-row"><input id="qa-title" placeholder="Нова задача…" aria-label="Нова задача" autocomplete="off"><button class="btn primary" type="submit">Добави</button></div>
     <div class="qa-opts">
       <select id="qa-list" data-qa="list" aria-label="Списък">${ls.map(([id, l]) => `<option value="${esc(id)}"${id === S.qa.list ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
       ${dc.map(([v, l]) => `<button type="button" class="chipbtn" data-act="qadate" data-v="${v}" aria-pressed="${S.qa.due === v}">${l}</button>`).join('')}

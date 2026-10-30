@@ -5,7 +5,7 @@
   const pages = [['index.html', 'Задачи'], ['bebe.html', 'Покупки за бебка']];
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   document.body.insertAdjacentHTML('afterbegin', '<nav class="appnav" aria-label="Раздели">' + pages.map(([h, l]) => '<a href="' + h + '"' + (ZAD_PAGE === h ? ' aria-current="page"' : '') + '>' + l + '</a>').join('') + '</nav>');
-  document.body.insertAdjacentHTML('beforeend', '<div id="gate" class="card" aria-live="polite">\n  <h2>Задачи и <em style="color:var(--accent);font-weight:500">напомняния</em></h2>\n  <div id="gate-body"><p class="msg">Зареждане…</p></div>\n</div>');
+  document.body.insertAdjacentHTML('beforeend', '<div id="gate" class="card" aria-live="polite">\n  <h2>Вход</h2>\n  <div id="gate-body"><p class="msg">Зареждане…</p></div>\n</div>');
 })();
 /* ===== Settings: fill these two from Supabase → Project Settings → Data API ===== */
 const ZAD_CONFIG = {

@@ -31,7 +31,6 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance }
 h1 { font-size: 1.9rem; line-height: 1.15 }
-h1 em { font-style: italic; font-weight: 500; color: var(--accent) }
 .sub { color: var(--muted); margin: 4px 0 0 }
 .num { font-variant-numeric: tabular-nums }
 button, input, select, textarea { font: inherit; color: inherit }
@@ -131,7 +130,7 @@ a.link { color: var(--accent); font-size: .88rem }
 table { border-collapse: collapse; width: 100%; font-size: .92rem }
 th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
 th:first-child, td:first-child { text-align: left; white-space: normal }
-th { font-size: .75rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 500 }
+th { font-size: .8rem; color: var(--muted); font-weight: 500 }
 tfoot td { font-weight: 600; border-bottom: 0 }
 .over { color: var(--danger) }
 .mini { display: grid; gap: 8px }
@@ -139,13 +138,18 @@ tfoot td { font-weight: 600; border-bottom: 0 }
 .mini-row small { color: var(--muted); grid-column: 1 / -1 }
 .state { text-align: center; color: var(--muted); padding: 30px 10px }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: .9rem; z-index: 20 }
-@media (prefers-reduced-motion: no-preference) { .item-row, .chipbtn, .check { transition: background-color .15s, border-color .15s } }
+@media (prefers-reduced-motion: no-preference) { .item-row, .check { transition: background-color .15s, border-color .15s } }
+.btn, .chipbtn, .stat, .tabs button, .appnav a { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chipbtn, .stat, .tabs button { transition: transform .12s ease-out, background-color .15s, border-color .15s }
+  .btn:active:not(:disabled), .chipbtn:active, .stat:active, .tabs button:active { transform: scale(.97) }
+  .toast { transition: opacity .2s ease-out, translate .2s ease-out; @starting-style { opacity: 0; translate: 0 8px } }
+}
 </style>
 
 <div class="wrap app-wrap" id="app">
   <header>
-    <h1>Покупки за <em>бебка</em></h1>
-    <p class="sub">Какво остава, какво е поръчано и откъде, и колко сме похарчили.</p>
+    <h1>Покупки за бебка</h1>
   </header>
   <div id="root"><div class="state">Зареждане на списъка…</div></div>
 </div>
@@ -197,8 +201,8 @@ function keepLocal(col, m, local) { unsynced.forEach((v, k) => { const [c, id] =
 function onWriteError(e) {
   if (e && (e.code === 'invalid_argument' || e.code === 'not_granted')) {
     if (!S.readOnly) { S.readOnly = true; render(); }
-  } else if (e && e.code === 'quota_exceeded') toast('Хранилището е пълно. Изтрийте ненужни неща.');
-  else toast('Промяната не се записа. Проверете връзката и опитайте пак.');
+  } else if (e && e.code === 'quota_exceeded') toast('Хранилището е пълно. Изтрий ненужни неща.');
+  else toast('Промяната не се записа. Провери връзката и опитай пак.');
 }
 async function save(col, id, patch, create) {
   if (!db || S.readOnly) return;
@@ -248,7 +252,7 @@ function render() {
   const all = Object.values(S.items), st = stats(all), budget = Number(S.settings.budget) || 0;
   const dis = S.readOnly ? ' disabled' : '';
   let h = '';
-  if (S.readOnly) h += `<div class="banner">Можете да разглеждате списъка, но не и да го променяте. Помолете собственика да ви даде достъп „Contributor“ или „Editor“ от бутона за споделяне.</div>`;
+  if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
   h += `<section class="card sum" aria-label="Обобщение">
     <div class="sum-top">
       <div><div class="big num">${money(st.spent)} <small>похарчени общо${budget ? ' от ' + money(budget) : ''}</small></div></div>
@@ -268,7 +272,7 @@ function listView(dis) {
   let h = `<div class="tools"><div class="chips" role="group" aria-label="Филтър">${F.map(([v, l]) => `<button class="chipbtn" data-act="filter" data-v="${v}" aria-pressed="${S.filter === v}">${l}</button>`).join('')}</div>
     <input class="search" id="search" type="search" placeholder="Търси…" value="${esc(S.q)}" aria-label="Търси в списъка"></div>`;
   const cats = catsSorted();
-  if (!cats.length) h += `<div class="card state">Списъкът е празен. Добавете първата категория отдолу, например „Основни“.</div>`;
+  if (!cats.length) h += `<div class="card state">Списъкът е празен. Добави първата категория отдолу, напр. „Основни“.</div>`;
   const stores = [...new Set(Object.values(S.items).map(i => (i.store || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'bg'));
   h += `<datalist id="stores">${stores.map(s => `<option value="${esc(s)}"></option>`).join('')}</datalist>`;
   const filtering = S.filter !== 'all' || S.q;
@@ -357,7 +361,7 @@ function budgetView(all, st, budget, dis) {
       <dt>Предстои по ориентировъчни цени</dt><dd>${money(st.planned)}</dd>
       ${budget ? `<dt class="total">${left >= 0 ? 'Остава свободно' : 'Над бюджета с'}</dt><dd class="total${left < 0 ? ' over' : ''}">${money(Math.abs(left))}</dd>` : ''}
     </dl>
-    ${budget ? '' : '<p class="sub" style="margin:0">Въведете бюджет, за да виждате колко остава. Ориентировъчните цени се попълват във всяко нещо от списъка.</p>'}
+    ${budget ? '' : '<p class="sub" style="margin:0">Въведи бюджет, за да виждаш колко остава. Ориентировъчна цена се попълва към всяко нещо.</p>'}
   </section>`;
   h += `<section class="card"><h3 style="margin-bottom:8px">По категории</h3><div class="tbl-wrap"><table>
     <thead><tr><th>Категория</th><th>Взети</th><th>Купени</th><th>Поръчани</th><th>Общо</th><th>Предстои</th><th>Бюджет</th></tr></thead><tbody>`;
