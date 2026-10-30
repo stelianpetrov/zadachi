@@ -386,7 +386,9 @@ const ZAD_CONFIG = {
         const email = f.querySelector('#g-email2').value.trim().toLowerCase();
         if (!allowed(email)) { screen('link', 'Този имейл няма достъп до приложението.', true); return; }
         const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirect } });
-        screen('link', error ? 'Не успях да изпратя линка. Опитай пак след минута.' : 'Изпратих линк на ' + email + '. Отвори го от това устройство.', !!error);
+        let why = '';
+        if (error) { const m = String(error.message || ''); why = /rate|limit|seconds/i.test(m) ? 'Изпратени са твърде много имейли за кратко. Опитай пак след около час или помоли Стелиан да ти зададе временна парола.' : /signup|not allowed|not found|user/i.test(m) ? 'Този имейл още няма профил. Стелиан трябва да го добави в Supabase.' : 'Не успях да изпратя линка (' + m + ').'; }
+        screen('link', error ? why : 'Изпратих линк на ' + email + '. Отвори го от това устройство.', !!error);
       } else if (f.id === 'f-pw') {
         const p1 = f.querySelector('#g-p1').value, p2 = f.querySelector('#g-p2').value;
         if (p1 !== p2) { screen('setpw', 'Двете пароли не съвпадат.', true); return; }
