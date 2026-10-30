@@ -1,8 +1,9 @@
 /* Shared login, navigation and Supabase data layer for every page of the site. */
 (function () {
-  const st = document.createElement('style'); st.textContent = 'body.locked .wrap.app-wrap { display: none }\nbody:not(.locked) #gate { display: none }\n#gate { max-width: 420px; margin: 8vh auto 0; display: grid; gap: 14px }\n#gate form { display: grid; gap: 12px }\n#gate .msg { font-size: .9rem; color: var(--muted); margin: 0 }\n#gate .msg.err { color: var(--danger) }\n#gate .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; text-align: left }\n.acct { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: .88rem; color: var(--muted) }' + '\n.appnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; display: flex; gap: 6px; justify-content: center; padding: 8px 0; background: var(--bg) }\n.appnav a { text-decoration: none; color: var(--muted); font-weight: 500; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); font-size: .92rem }\n.appnav a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }\nbody.locked .appnav { display: none }\n'; document.head.appendChild(st);
+  const st = document.createElement('style'); st.textContent = 'body.locked .wrap.app-wrap { display: none }\nbody:not(.locked) #gate { display: none }\n#gate { max-width: 420px; margin: 8vh auto 0; display: grid; gap: 14px }\n#gate form { display: grid; gap: 12px }\n#gate .msg { font-size: .9rem; color: var(--muted); margin: 0 }\n#gate .msg.err { color: var(--danger) }\n#gate .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; text-align: left }\n.acct { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: .88rem; color: var(--muted) }' + '\n.appnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; display: flex; gap: 6px; justify-content: center; padding: 8px 0; background: var(--bg) }\n.appnav a { text-decoration: none; color: var(--muted); font-weight: 500; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); font-size: .92rem }\n.appnav a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }\nbody.locked .appnav { display: none }\n.appnav { flex-wrap: wrap }\n.appnav::after { content: "Без връзка: виждаш последното записано"; display: none; flex-basis: 100%; text-align: center; font-size: .8rem; color: var(--wait) }\nbody.offline .appnav::after { display: block }\n'; document.head.appendChild(st);
   const ZAD_PAGE = (location.pathname.split('/').pop() || 'index.html');
   const pages = [['index.html', 'Задачи'], ['bebe.html', 'Покупки за бебка']];
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   document.body.insertAdjacentHTML('afterbegin', '<nav class="appnav" aria-label="Раздели">' + pages.map(([h, l]) => '<a href="' + h + '"' + (ZAD_PAGE === h ? ' aria-current="page"' : '') + '>' + l + '</a>').join('') + '</nav>');
   document.body.insertAdjacentHTML('beforeend', '<div id="gate" class="card" aria-live="polite">\n  <h2>Задачи и <em style="color:var(--accent);font-weight:500">напомняния</em></h2>\n  <div id="gate-body"><p class="msg">Зареждане…</p></div>\n</div>');
 })();
@@ -24,13 +25,21 @@ const ZAD_CONFIG = {
   const dbReady = new Promise(r => resolveDb = r);
   const clone = v => JSON.parse(JSON.stringify(v));
   const snap = col => ({ docs: Object.entries(cache[col] || {}).map(([id, d]) => ({ id, data: () => clone(d) })) });
-  const emit = col => { if (loaded[col]) (subs[col] || []).forEach(fn => fn(snap(col))); };
+  // last good copy of each collection on this device, so the lists still open without a connection
+  const keep = col => { try { localStorage.setItem('zad-cache-' + col, JSON.stringify(cache[col] || {})); } catch (e) {} };
+  const kept = col => { try { return JSON.parse(localStorage.getItem('zad-cache-' + col)); } catch (e) { return null; } };
+  const emit = col => { if (loaded[col]) { keep(col); (subs[col] || []).forEach(fn => fn(snap(col))); } };
+  const offline = on => document.body.classList.toggle('offline', !!on);
   const fail = (e) => { const err = new Error(e && e.message || 'error'); err.code = e && /JWT|permission|policy|auth/i.test(e.message || '') ? 'not_granted' : 'unavailable'; return err; };
 
   async function loadCol(col) {
     const { data, error } = await sb.from('docs').select('id,data').eq('col', col).limit(10000);
-    if (error) throw fail(error);
-    cache[col] = {}; data.forEach(r => cache[col][r.id] = r.data); loaded[col] = true; emit(col);
+    if (error) {
+      const old = !loaded[col] && kept(col);
+      if (old && (!navigator.onLine || /fetch|network/i.test(error.message || ''))) { cache[col] = old; loaded[col] = true; offline(true); (subs[col] || []).forEach(fn => fn(snap(col))); return; }
+      throw fail(error);
+    }
+    cache[col] = {}; data.forEach(r => cache[col][r.id] = r.data); loaded[col] = true; offline(false); emit(col);
   }
   const db = {
     collection: col => ({
@@ -79,7 +88,10 @@ const ZAD_CONFIG = {
       emit(col);
     }).subscribe();
     // catch up after the phone was asleep or offline
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) Object.keys(subs).forEach(c => loadCol(c).catch(() => {})); });
+    const catchUp = () => Object.keys(subs).forEach(c => loadCol(c).catch(() => {}));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) catchUp(); });
+    addEventListener('online', catchUp);
+    addEventListener('offline', () => offline(true));
   }
 
   /* ----- login screens ----- */
@@ -90,13 +102,13 @@ const ZAD_CONFIG = {
     document.body.classList.add('locked');
     const m = msg ? `<p class="msg${err ? ' err' : ''}">${esc(msg)}</p>` : '';
     if (kind === 'login') gateBody.innerHTML = `<form id="f-login">
-        <label class="f">Имейл<input id="g-email" type="email" autocomplete="username" required></label>
+        <label class="f">Имейл<input id="g-email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
         <label class="f">Парола<input id="g-pass" type="password" autocomplete="current-password" required></label>
         ${m}<button class="btn primary" type="submit">Вход</button>
         <button class="linkbtn" type="button" id="g-first">Първо влизане или забравена парола?</button></form>`;
     else if (kind === 'link') gateBody.innerHTML = `<form id="f-link">
         <p class="msg">Въведи имейла си и ще получиш линк за вход. След него ще си създадеш парола.</p>
-        <label class="f">Имейл<input id="g-email2" type="email" autocomplete="username" required></label>
+        <label class="f">Имейл<input id="g-email2" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
         ${m}<button class="btn primary" type="submit">Изпрати линк</button>
         <button class="linkbtn" type="button" id="g-back">Назад към входа</button></form>`;
     else if (kind === 'setpw') gateBody.innerHTML = `<form id="f-pw">
@@ -147,7 +159,7 @@ const ZAD_CONFIG = {
   }
   sb.auth.onAuthStateChange((ev, session) => {
     if (ev === 'PASSWORD_RECOVERY') recovering = true;
-    if (ev === 'SIGNED_OUT') { location.reload(); return; }
+    if (ev === 'SIGNED_OUT') { try { Object.keys(localStorage).filter(k => k.startsWith('zad-cache-')).forEach(k => localStorage.removeItem(k)); } catch (e) {} location.reload(); return; }
     if (ev === 'INITIAL_SESSION' || ev === 'SIGNED_IN' || ev === 'PASSWORD_RECOVERY') setTimeout(() => enter(session), 0);
   });
   if (/error_description=/.test(location.hash)) { const p = new URLSearchParams(location.hash.slice(1)); history.replaceState(null, '', redirect); setTimeout(() => screen('link', 'Линкът е изтекъл или вече е използван. Поискай нов.', true), 0); }
