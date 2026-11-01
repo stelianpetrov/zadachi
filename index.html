@@ -126,6 +126,13 @@ label.f, div.f { display: flex; flex-direction: column; gap: 4px; font-size: .8r
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 14px; font-weight: 500 }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
 .btn.danger { color: var(--danger) }
+.selbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 18; width: min(640px, calc(100% - 24px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,.18) }
+.selbar .selcount { font-weight: 500; margin-right: auto }
+.selbar .selbtns { display: flex; flex-wrap: wrap; gap: 6px }
+body.selecting .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) }
+body.selecting .wrap { padding-bottom: 96px }
+.check.pick:checked { background: var(--accent); border-color: var(--accent) }
+.item.picked { background: var(--accent-soft) }
 .btn.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--surface) }
 a.link { color: var(--accent); font-size: .9rem; font-weight: 500 }
 .add { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg) }
@@ -273,7 +280,7 @@ body.dragmode { touch-action: none; overscroll-behavior: contain }
 <script>
 const KEYS = { lists: 'lists', tasks: 'tasks', mgroups: 'groups', money: 'money', vacation: 'leave' };
 const S = { lists: {}, tasks: {}, groups: {}, money: {}, leave: {}, got: {}, noDb: false, readOnly: false,
-  tab: 'tasks', view: 'agenda', filter: 'open', q: '', open: new Set(), armed: null, menu: null, dirty: false, shopEdit: false, extraMonths: 0,
+  tab: 'tasks', view: 'agenda', filter: 'open', q: '', open: new Set(), sel: null, armed: null, menu: null, dirty: false, shopEdit: false, extraMonths: 0,
   qa: { list: '', due: '', time: '', prio: 'normal' }, shopList: '' };
 const LOCAL = { lists: {}, tasks: {}, mgroups: {}, money: {}, vacation: {} };   // created here, not yet confirmed by the server
 let db = null;
@@ -421,6 +428,9 @@ function render() {
   else if (S.tab === 'shop') h += shopView(dis);
   else if (S.tab === 'leave') h += leaveView(dis);
   else { h += summary(); if (!S.readOnly) h += quickAdd(); h += tools(); h += S.view === 'agenda' ? agendaView(dis) : listsView(dis); }
+  if (S.sel && (S.tab !== 'tasks' || S.readOnly)) S.sel = null;
+  if (S.sel) { [...S.sel].forEach(x => { if (!S.tasks[x]) S.sel.delete(x); }); h += selBar(); }
+  document.body.classList.toggle('selecting', !!S.sel);
   root.innerHTML = h;
 }
 
@@ -454,7 +464,14 @@ function tools() {
   const F = [['open', 'Незавършени'], ['high', 'Важни'], ['done', 'Завършени'], ['all', 'Всички']];
   return `<div class="tools"><div class="tabs" role="group" aria-label="Подредба">${[['agenda', 'По дати'], ['lists', 'По списъци']].map(([v, l]) => `<button data-act="view" data-v="${v}" aria-pressed="${S.view === v}">${l}</button>`).join('')}</div>
     <div class="chips" role="group" aria-label="Филтър">${F.map(([v, l]) => `<button class="chipbtn" data-act="filter" data-v="${v}" aria-pressed="${S.filter === v}">${l}</button>`).join('')}</div>
-    <input class="search" id="search" type="search" placeholder="Търси…" value="${esc(S.q)}" aria-label="Търси в задачите"></div>`;
+    <input class="search" id="search" type="search" placeholder="Търси…" value="${esc(S.q)}" aria-label="Търси в задачите">
+    ${S.readOnly ? '' : `<button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button>`}</div>`;
+}
+function selBar() {
+  const n = S.sel.size, armed = S.armed === 'seldel';
+  return `<div class="selbar" role="region" aria-label="Избрани задачи"><span class="selcount">${n ? `Избрани: ${n}` : 'Докосни задачите, които искаш'}</span>
+    <span class="selbtns"><button class="btn" data-act="selall">Избери всички видими</button>${n ? `<button class="btn" data-act="selnone">Махни избора</button>` : ''}
+    <button class="btn danger${armed ? ' armed' : ''}" data-act="seldel"${n ? '' : ' disabled'}>${armed ? `Да, изтрий ${n}` : 'Изтрий избраните'}</button></span></div>`;
 }
 function agendaView(dis) {
   const g = { overdue: [], today: [], upcoming: [], nodate: [], done: [] };
@@ -518,6 +535,16 @@ function taskHtml(id, t, dis, showList) {
   if (p === 'low') tags += `<span class="tag t-low">Някой ден</span>`;
   if (t.where) tags += `<span class="tag">${esc(t.where)}</span>`;
   const right = t.due && !t.done ? `<span class="tilecol">${tileHtml(t, od)}${t.due >= today() ? `<a class="rem" href="${esc(cal)}" target="_blank" rel="noopener">+ напомняне</a>` : ''}</span>` : '<span></span>';
+  if (S.sel) { const on = S.sel.has(id);
+    return `<div class="item${t.done ? ' is-done' : ''}${on ? ' picked' : ''}"><div class="item-row">
+      <input type="checkbox" class="check pick" data-act="pick" data-id="${esc(id)}" ${on ? 'checked' : ''} aria-label="Избери: ${esc(t.title)}">
+      <button class="item-main" data-act="pick" data-id="${esc(id)}" aria-pressed="${on}">
+        <span class="item-name">${esc(t.title)}</span>
+        ${t.notes ? `<span class="item-note">${esc(t.notes)}</span>` : ''}
+        ${tags ? `<span class="tags">${tags}</span>` : ''}
+      </button>
+      ${t.due && !t.done ? `<span class="tilecol">${tileHtml(t, od)}</span>` : '<span></span>'}
+    </div></div>`; }
   let h = `<div class="item${t.done ? ' is-done' : ''}${p === 'high' ? ' p-high' : ''}">
     <div class="item-row">
       <input type="checkbox" class="check" id="chk-${esc(id)}" data-act="done" data-id="${esc(id)}" ${t.done ? 'checked' : ''} aria-label="Готово: ${esc(t.title)}"${dis}>
@@ -721,10 +748,18 @@ function newTask(title, list, extra) {
   create('tasks', id, Object.assign({ title, list, order, done: false, due: '', time: '', priority: 'normal', where: '', notes: '', created: new Date().toISOString() }, extra));
 }
 root.addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || b.tagName === 'INPUT') return;
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || (b.tagName === 'INPUT' && b.dataset.act !== 'pick')) return;
   const act = b.dataset.act, id = b.dataset.id;
-  if (!['deltask', 'delmoney', 'secdel', 'clearbought'].includes(act)) S.armed = null;
-  if (act === 'tab') { S.tab = b.dataset.v; S.menu = null; try { localStorage.setItem('zad-tab', S.tab); } catch (err) {} window.scrollTo(0, 0); }
+  if (!['deltask', 'delmoney', 'secdel', 'clearbought', 'seldel'].includes(act)) S.armed = null;
+  if (act === 'selmode') { S.sel = S.sel ? null : new Set(); S.open.clear(); S.menu = null; }
+  else if (act === 'pick') { if (S.sel) S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); }
+  else if (act === 'selall') { root.querySelectorAll('button[data-act="pick"]').forEach(x => S.sel.add(x.dataset.id)); }
+  else if (act === 'selnone') S.sel.clear();
+  else if (act === 'seldel') {
+    if (S.armed === 'seldel') { S.armed = null; const ids = [...S.sel].filter(x => S.tasks[x]); ids.forEach(x => { delete S.tasks[x]; remove('tasks', x); }); S.sel = null; toast('Изтрити задачи: ' + ids.length); }
+    else if (S.sel.size) S.armed = 'seldel';
+  } else
+  if (act === 'tab') { S.sel = null; S.tab = b.dataset.v; S.menu = null; try { localStorage.setItem('zad-tab', S.tab); } catch (err) {} window.scrollTo(0, 0); }
   else if (act === 'hday') { toast(b.dataset.n); }
   else if (act === 'view') { S.view = b.dataset.v; S.menu = null; try { localStorage.setItem('zad-view', S.view); } catch (err) {} }
   else if (act === 'jump') { S.view = 'agenda'; S.filter = 'open'; S.q = ''; render(); const map = { over: 'overdue', today: 'today', week: 'upcoming', nodate: 'nodate' };
