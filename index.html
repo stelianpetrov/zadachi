@@ -133,6 +133,8 @@ body.selecting .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) }
 body.selecting .wrap { padding-bottom: 96px }
 .check.pick:checked { background: var(--accent); border-color: var(--accent) }
 .item.picked { background: var(--accent-soft) }
+.sc.picked { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); text-decoration: none }
+.sc.picked::before { background: var(--accent); border-color: var(--accent) }
 .btn.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--surface) }
 a.link { color: var(--accent); font-size: .9rem; font-weight: 500 }
 .add { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg) }
@@ -428,8 +430,8 @@ function render() {
   else if (S.tab === 'shop') h += shopView(dis);
   else if (S.tab === 'leave') h += leaveView(dis);
   else { h += summary(); if (!S.readOnly) h += quickAdd(); h += tools(); h += S.view === 'agenda' ? agendaView(dis) : listsView(dis); }
-  if (S.sel && (S.tab !== 'tasks' || S.readOnly)) S.sel = null;
-  if (S.sel) { [...S.sel].forEach(x => { if (!S.tasks[x]) S.sel.delete(x); }); h += selBar(); }
+  if (S.sel && (S.tab === 'leave' || S.readOnly)) S.sel = null;
+  if (S.sel) { const src = S.tab === 'money' ? S.money : S.tasks; [...S.sel].forEach(x => { if (!src[x]) S.sel.delete(x); }); h += selBar(); }
   document.body.classList.toggle('selecting', !!S.sel);
   root.innerHTML = h;
 }
@@ -468,8 +470,8 @@ function tools() {
     ${S.readOnly ? '' : `<button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button>`}</div>`;
 }
 function selBar() {
-  const n = S.sel.size, armed = S.armed === 'seldel';
-  return `<div class="selbar" role="region" aria-label="Избрани задачи"><span class="selcount">${n ? `Избрани: ${n}` : 'Докосни задачите, които искаш'}</span>
+  const n = S.sel.size, armed = S.armed === 'seldel', what = S.tab === 'money' ? 'редовете' : S.tab === 'shop' ? 'покупките' : 'задачите';
+  return `<div class="selbar" role="region" aria-label="Избрани"><span class="selcount">${n ? `Избрани: ${n}` : `Докосни ${what}, които искаш`}</span>
     <span class="selbtns"><button class="btn" data-act="selall">Избери всички видими</button>${n ? `<button class="btn" data-act="selnone">Махни избора</button>` : ''}
     <button class="btn danger${armed ? ' armed' : ''}" data-act="seldel"${n ? '' : ' disabled'}>${armed ? `Да, изтрий ${n}` : 'Изтрий избраните'}</button></span></div>`;
 }
@@ -592,6 +594,7 @@ function shopView(dis) {
       <div class="sf-row"><select id="shop-list" data-shoplist="1" aria-label="Група">${gs.map(([id, l]) => `<option value="${esc(id)}"${id === S.shopList ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
       <input id="shop-where" placeholder="Магазин (по желание)" aria-label="Магазин" autocomplete="off"></div></form>`;
   h += `<div class="shopbar"><span class="hint">${all.length - bought.length} за купуване${bought.length ? ` · ${bought.length} купени` : ''}. Докосни, за да отбележиш.</span><span style="display:flex;gap:6px;flex-wrap:wrap">
+    ${S.readOnly ? '' : `<button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button>`}
     <button class="chipbtn" data-act="shopedit" aria-pressed="${S.shopEdit}">Редактирай</button>
     ${bought.length && !S.readOnly ? `<button class="chipbtn" data-act="clearbought">${S.armed === 'clr' ? 'Да, изтрий купените' : 'Изчисти купените'}</button>` : ''}</span></div>`;
   h += `<div class="shopgrid">`;
@@ -601,8 +604,8 @@ function shopView(dis) {
     const openId = items.find(([id]) => S.open.has(id));
     h += `<section class="shopcard" data-lid="${esc(lid)}" aria-label="${esc(l.name)}"><div class="shead"><div style="display:flex;align-items:center;gap:6px;min-width:0"><h2>${esc(l.name)}</h2><button class="iconbtn" data-act="menu" data-id="l:${esc(lid)}" aria-label="Настройки на групата" aria-expanded="${S.menu === 'l:' + lid}">⋯</button></div><span class="cnt">${left}/${items.length}</span></div>`;
     if (S.menu === 'l:' + lid) h += secMenu('l', lid, l, idx, gs.length, items.length, dis);
-    h += items.length ? `<div class="sc-list">${items.map(([id, t]) => `<button class="sc${t.done ? ' done' : ''}${S.shopEdit && S.open.has(id) ? ' sel' : ''}" data-act="shopchip" data-id="${esc(id)}"${S.readOnly && !S.shopEdit ? ' disabled' : ''}><span>${esc(t.title)}${t.where ? ` <small>· ${esc(t.where)}</small>` : ''}</span></button>`).join('')}</div>` : `<div class="empty" style="padding:0">Празно.</div>`;
-    if (S.shopEdit && openId) h += taskEdit(openId[0], openId[1], dis, '', true);
+    h += items.length ? `<div class="sc-list">${items.map(([id, t]) => S.sel ? `<button class="sc${S.sel.has(id) ? ' picked' : ''}" data-act="pick" data-id="${esc(id)}" aria-pressed="${S.sel.has(id)}"><span>${esc(t.title)}${t.where ? ` <small>· ${esc(t.where)}</small>` : ''}</span></button>` : `<button class="sc${t.done ? ' done' : ''}${S.shopEdit && S.open.has(id) ? ' sel' : ''}" data-act="shopchip" data-id="${esc(id)}"${S.readOnly && !S.shopEdit ? ' disabled' : ''}><span>${esc(t.title)}${t.where ? ` <small>· ${esc(t.where)}</small>` : ''}</span></button>`).join('')}</div>` : `<div class="empty" style="padding:0">Празно.</div>`;
+    if (S.shopEdit && openId && !S.sel) h += taskEdit(openId[0], openId[1], dis, '', true);
     h += `</section>`;
   });
   h += `</div>`;
@@ -686,7 +689,7 @@ function moneyView(dis) {
     <div class="get"><span>За взимане</span><b>+${money(g0)}</b></div>
     <div class="pay"><span>За даване</span><b>−${money(p0)}</b></div>
     <div class="net ${net0 >= 0 ? 'get' : 'pay'}"><span>Баланс</span><b>${signed(net0)}</b></div></div>
-    <p class="hint">Броят се само неуредените. Отметни реда, когато парите са взети или дадени.</p></section>`;
+    <div class="shopbar"><p class="hint">Броят се само неуредените. Отметни реда, когато парите са взети или дадени.</p>${S.readOnly ? '' : `<button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button>`}</div></section>`;
   const gs = groupsSorted();
   gs.forEach(([gid, g], idx) => {
     const items = Object.entries(S.money).filter(([, m]) => m.group === gid);
@@ -717,6 +720,16 @@ function moneyView(dis) {
 function moneyHtml(id, m, dis) {
   const open = S.open.has(id), dir = m.dir || 'get';
   const tags = m.settled ? '<span class="tag">уредено</span>' : '';
+  if (S.sel) { const on = S.sel.has(id);
+    return `<div class="item${m.settled ? ' is-done' : ''}${on ? ' picked' : ''}"><div class="item-row">
+      <input type="checkbox" class="check pick" data-act="pick" data-id="${esc(id)}" ${on ? 'checked' : ''} aria-label="Избери: ${esc(m.title)}">
+      <button class="item-main" data-act="pick" data-id="${esc(id)}" aria-pressed="${on}">
+        <span class="item-name">${esc(m.title)}</span>
+        ${m.notes ? `<span class="item-note">${esc(m.notes)}</span>` : ''}
+        ${tags ? `<span class="tags">${tags}</span>` : ''}
+      </button>
+      <span class="amt ${dir}">${dir === 'get' ? '+' : '−'}${money(m.amount)}</span>
+    </div></div>`; }
   let h = `<div class="item${m.settled ? ' is-done' : ''}">
     <div class="item-row">
       <input type="checkbox" class="check" id="mchk-${esc(id)}" data-act="settled" data-id="${esc(id)}" ${m.settled ? 'checked' : ''} aria-label="Уредено: ${esc(m.title)}"${dis}>
@@ -756,7 +769,8 @@ root.addEventListener('click', e => {
   else if (act === 'selall') { root.querySelectorAll('button[data-act="pick"]').forEach(x => S.sel.add(x.dataset.id)); }
   else if (act === 'selnone') S.sel.clear();
   else if (act === 'seldel') {
-    if (S.armed === 'seldel') { S.armed = null; const ids = [...S.sel].filter(x => S.tasks[x]); ids.forEach(x => { delete S.tasks[x]; remove('tasks', x); }); S.sel = null; toast('Изтрити задачи: ' + ids.length); }
+    if (S.armed === 'seldel') { S.armed = null; const col = S.tab === 'money' ? 'money' : 'tasks', src = S[KEYS[col]];
+      const ids = [...S.sel].filter(x => src[x]); ids.forEach(x => { delete src[x]; remove(col, x); }); S.sel = null; toast('Изтрити: ' + ids.length); }
     else if (S.sel.size) S.armed = 'seldel';
   } else
   if (act === 'tab') { S.sel = null; S.tab = b.dataset.v; S.menu = null; try { localStorage.setItem('zad-tab', S.tab); } catch (err) {} window.scrollTo(0, 0); }
@@ -856,7 +870,7 @@ root.addEventListener('input', e => { if (e.target.id === 'search') { S.q = e.ta
   };
   const move = () => { D.ghost.style.left = (D.x - D.ox) + 'px'; D.ghost.style.top = (D.y - D.oy) + 'px'; D.t = target(D.x, D.y); };
   root.addEventListener('pointerdown', e => {
-    const el = e.target.closest && e.target.closest('.sc'); if (!el || S.readOnly || D || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const el = e.target.closest && e.target.closest('.sc'); if (!el || S.readOnly || S.sel || D || (e.pointerType === 'mouse' && e.button !== 0)) return;
     D = { el, id: el.dataset.id, pid: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse', on: false };
     if (D.touch) D.timer = setTimeout(() => { if (D && !D.on) start(); }, 350);
   });
