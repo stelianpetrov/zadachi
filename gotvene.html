@@ -1,0 +1,579 @@
+<!doctype html><html lang="bg"><head><meta charset="utf-8"><title>Готвене</title><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#F6F3F0" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#16120F" media="(prefers-color-scheme: dark)"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Задачи"><meta name="referrer" content="strict-origin-when-cross-origin"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://dhydrtoxydaqxdvprjlp.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;1,7..72,500&family=Onest:wght@400;500;600&display=swap">
+<style>
+/* Layout: tabs (plan, shopping, recipes); plan and shopping share the week picker; rows expand in place to edit */
+:root {
+  --bg: #F6F3F0; --surface: #FFFFFF; --ink: #2A211C; --muted: #6E625A; --line: #E6DED7;
+  --accent: #9A4320; --accent-soft: #F6E6DC; --on-accent: #FFFFFF;
+  --ok: #357552; --ok-soft: #DFEFE5; --wait: #94590A; --wait-soft: #FAEDD6; --danger: #B3261E; --danger-soft: #FBE7E5;
+  --display: "Literata", Georgia, "Times New Roman", serif;
+  --body: "Onest", "Segoe UI", Roboto, Arial, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16120F; --surface: #201A16; --ink: #F0E9E3; --muted: #A89B91; --line: #362D27;
+  --accent: #F0A27A; --accent-soft: #3A2519; --on-accent: #2A1306;
+  --ok: #7CC59A; --ok-soft: #1B3025; --wait: #E7B05A; --wait-soft: #372A15; --danger: #F2827A; --danger-soft: #3B1C1A;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #16120F; --surface: #201A16; --ink: #F0E9E3; --muted: #A89B91; --line: #362D27;
+  --accent: #F0A27A; --accent-soft: #3A2519; --on-accent: #2A1306;
+  --ok: #7CC59A; --ok-soft: #1B3025; --wait: #E7B05A; --wait-soft: #372A15; --danger: #F2827A; --danger-soft: #3B1C1A;
+  color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 60px }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance }
+h1 { font-size: 1.9rem; line-height: 1.15 }
+.sub { color: var(--muted); margin: 4px 0 0 }
+button, input, select, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+button:disabled { cursor: default; opacity: .5 }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px }
+.banner { background: var(--wait-soft); border-radius: var(--r); padding: 12px 14px; font-size: .92rem }
+.state { text-align: center; color: var(--muted); padding: 30px 10px }
+.hint { font-size: .85rem; color: var(--muted); margin: 0 }
+#root { display: flex; flex-direction: column; gap: 18px }
+
+.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 4px; width: fit-content; max-width: 100%; overflow-x: auto }
+.tabs button { border: 0; background: none; padding: 7px 14px; border-radius: 99px; font-weight: 500; color: var(--muted); white-space: nowrap }
+.tabs button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent) }
+
+/* weeks */
+.weeks { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin }
+.wchip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 7px 14px; display: flex; flex-direction: column; align-items: flex-start }
+.wchip b { font-weight: 600; font-variant-numeric: tabular-nums }
+.wchip small { font-size: .78rem; color: var(--muted) }
+.wchip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.wchip[aria-pressed="true"] small { color: var(--on-accent); opacity: .85 }
+.wchip.add { border-style: dashed; color: var(--muted); justify-content: center }
+
+/* sections + rows */
+.sec { display: flex; flex-direction: column; gap: 10px }
+.sec-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap }
+.sec-head h2 { font-size: 1.3rem }
+.sec-meta { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.empty { padding: 14px 16px; color: var(--muted); font-size: .9rem }
+.grp-h { padding: 8px 14px 6px; font-size: .78rem; color: var(--muted); letter-spacing: .03em; background: var(--bg); border-top: 1px solid var(--line) }
+.list > .grp-h:first-child { border-top: 0 }
+.item { border-top: 1px solid var(--line) }
+.list > .item:first-child, .grp-h + .item { border-top: 0 }
+.item-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 11px 14px }
+.check { appearance: none; -webkit-appearance: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--muted); background: var(--surface); margin: 0; display: grid; place-content: center; cursor: pointer }
+.check::after { content: ""; width: 12px; height: 7px; border: solid var(--surface); border-width: 0 0 2.5px 2.5px; transform: rotate(-45deg) translate(1px,-1px); opacity: 0 }
+.check:checked { background: var(--ok); border-color: var(--ok) }
+.check:checked::after { opacity: 1 }
+.check.pick:checked { background: var(--accent); border-color: var(--accent) }
+.item.picked { background: var(--accent-soft) }
+.item-main { min-width: 0; text-align: left; border: 0; background: none; padding: 0; display: flex; flex-direction: column; gap: 3px }
+.item-name { font-weight: 500; overflow-wrap: anywhere }
+.item-note { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere }
+.item.is-done .item-name { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted) }
+.tags { display: flex; flex-wrap: wrap; gap: 4px }
+.tag { font-size: .74rem; border-radius: 99px; padding: 1px 8px; background: var(--bg); color: var(--muted); white-space: nowrap }
+.tag.chk { background: var(--wait-soft); color: var(--wait) }
+.tag.new { background: var(--ok-soft); color: var(--ok) }
+.qty { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap }
+.item.is-done .qty { color: var(--muted); font-weight: 400 }
+.edit { padding: 4px 14px 16px 52px; display: grid; gap: 12px }
+@media (max-width: 460px) { .edit { padding-left: 14px } }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+@media (max-width: 460px) { .row2 { grid-template-columns: 1fr } }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); letter-spacing: .02em; min-width: 0 }
+.f input, .f select, .f textarea, .search { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px; font-size: .95rem; color: var(--ink); width: 100%; min-width: 0 }
+.f textarea { min-height: 150px; resize: vertical; line-height: 1.5 }
+.cbs { display: flex; flex-wrap: wrap; gap: 14px; font-size: .9rem }
+.cbs label { display: flex; gap: 6px; align-items: center }
+.edit-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center }
+.edit-foot .grp { display: flex; gap: 6px; flex-wrap: wrap; align-items: center }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 14px; font-weight: 500 }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.btn.danger { color: var(--danger) }
+.btn.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--surface) }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chipbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 5px 12px; font-size: .88rem }
+.chipbtn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 500 }
+.add { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg) }
+.add input, .add select { flex: 1 1 140px; min-width: 0; border: 1px dashed var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px }
+.add select.day-in { flex: 0 1 150px }
+.toolsrow { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap }
+
+/* days */
+.day-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px 10px; border-bottom: 1px solid var(--line) }
+.day-h h3 { font-size: 1.12rem }
+.day-h .cook { font-size: .78rem; font-weight: 600; border-radius: 99px; padding: 2px 10px; background: var(--accent-soft); color: var(--accent) }
+.list.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) }
+.list.past { opacity: .72 }
+.picker { display: grid; gap: 8px; background: var(--accent-soft); border-radius: 12px; padding: 10px }
+.picker .opts { display: flex; flex-direction: column; max-height: 300px; overflow-y: auto; background: var(--surface); border-radius: 10px; border: 1px solid var(--line) }
+.opt { border: 0; border-top: 1px solid var(--line); background: none; text-align: left; padding: 9px 12px; display: flex; justify-content: space-between; gap: 10px; align-items: center }
+.opt:first-child { border-top: 0 }
+.opt span { min-width: 0; overflow-wrap: anywhere }
+.opt small { color: var(--muted); white-space: nowrap; font-size: .78rem }
+
+/* shopping */
+.sum3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.sum3 div { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.sum3 span { font-size: .8rem; color: var(--muted) }
+.sum3 b { font-family: var(--display); font-size: 1.5rem; line-height: 1.15; font-variant-numeric: tabular-nums }
+.sum3 .done b { color: var(--ok) } .sum3 .left b { color: var(--wait) }
+.bar { display: flex; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden }
+.bar span { display: block; height: 100%; background: var(--ok) }
+.xbtn { border: 0; background: none; color: var(--muted); font-size: 1.2rem; line-height: 1; padding: 2px 6px; border-radius: 8px }
+
+/* multi-select */
+.selbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 18; width: min(640px, calc(100% - 24px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,.18) }
+.selbar .selcount { font-weight: 500; margin-right: auto }
+.selbar .selbtns { display: flex; flex-wrap: wrap; gap: 6px }
+body.selecting .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) }
+body.selecting .wrap { padding-bottom: 96px }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: .9rem; z-index: 20; max-width: calc(100% - 32px) }
+.btn, .chipbtn, .wchip, .opt, .tabs button, .appnav a { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chipbtn, .wchip { transition: transform .12s ease-out, background-color .15s, border-color .15s }
+  .btn:active:not(:disabled), .chipbtn:active, .wchip:active { transform: scale(.97) }
+  .toast { transition: opacity .2s ease-out, translate .2s ease-out; @starting-style { opacity: 0; translate: 0 8px } }
+}
+</style>
+
+<div class="wrap app-wrap">
+  <header>
+    <h1>Готвене</h1>
+    <p class="sub">Готвиш в неделя и сряда. Тук са планът по седмици, списъкът за пазаруване и рецептурникът.</p>
+  </header>
+  <div id="root"><div class="state">Зареждане…</div></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script>
+/* collections: recipes/<id> {cat, name, check, note, keeps, auto, isNew, fav, ing: ["Пилешко филе 800 г", …]};
+   meals/<id> {date, kind: cook|dessert|breakfast, recipe, note, done, order, noShop};
+   gshop/<id> {week, key, done} for ticked list items, or {week, name, extra: true, done} for added ones */
+const KEYS = { recipes: 'rec', meals: 'meals', gshop: 'shop' };
+const S = { rec: {}, meals: {}, shop: {}, got: {}, noDb: false, readOnly: false,
+  tab: 'plan', week: '', open: new Set(), sel: null, armed: null, dirty: false, pick: null, pq: '', rq: '', rcat: '', rflag: '' };
+const LOCAL = { recipes: {}, meals: {}, gshop: {} };
+let db = null;
+try { const v = localStorage.getItem('zad-cook-tab'); if (['plan', 'shop', 'rec'].includes(v)) S.tab = v; } catch (e) {}
+
+const root = document.getElementById('root');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const pad = n => String(n).padStart(2, '0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => keyOf(new Date());
+const dt = k => new Date(k + 'T12:00');
+const addDays = (k, n) => { const d = dt(k); d.setDate(d.getDate() + n); return keyOf(d); };
+const weekOf = k => { const d = dt(k); d.setDate(d.getDate() - d.getDay()); return keyOf(d); };
+const WDL = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+const ML = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
+const MS = ['ян', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+const cap = s => s.replace(/^./, c => c.toUpperCase());
+const dayName = k => { const d = dt(k); return `${cap(WDL[d.getDay()])}, ${d.getDate()} ${ML[d.getMonth()]}`; };
+const weekLabel = w => { const a = dt(w), b = dt(addDays(w, 6));
+  return a.getMonth() === b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MS[a.getMonth()]}` : `${a.getDate()} ${MS[a.getMonth()]} – ${b.getDate()} ${MS[b.getMonth()]}`; };
+const CATS = [['main', 'Основни'], ['side', 'Гарнитури и салати'], ['dessert', 'Десерти'], ['breakfast', 'Закуски']];
+const CATL = Object.fromEntries(CATS);
+const KINDS = [['breakfast', 'Закуска'], ['cook', 'Готвене'], ['dessert', 'Десерт']];
+const kindOf = cat => cat === 'dessert' ? 'dessert' : cat === 'breakfast' ? 'breakfast' : 'cook';
+const catsFor = kind => kind === 'cook' ? ['main', 'side'] : [kind];
+const keepsTxt = n => n >= 7 ? 'държи седмица' : n >= 2 ? `за ${n} дни` : 'яде се веднага';
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800); }
+
+/* ---------- ingredients → shopping list ---------- */
+const UNIT = { 'г': ['г', 1], 'гр': ['г', 1], 'кг': ['г', 1000], 'мл': ['мл', 1], 'л': ['мл', 1000], 'бр': ['бр', 1], 'с.л.': ['с.л.', 1], 'ч.л.': ['ч.л.', 1],
+  'пак': ['пак', 1], 'пакет': ['пак', 1], 'връзка': ['връзка', 1], 'връзки': ['връзка', 1], 'скилидки': ['скилидки', 1], 'скилидка': ['скилидки', 1], 'парче': ['парче', 1], 'кутия': ['бр', 1], 'глава': ['бр', 1] };
+const LINE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(кг|гр|г|мл|л|бр|с\.л\.|ч\.л\.|пакет|пак|връзки|връзка|скилидки|скилидка|парче|кутия|глава)?\.?$/i;
+function parseIng(s) {
+  s = String(s || '').trim().replace(/^[-•*]\s*/, '').replace(/\s+—\s+|\s+-\s+|:\s*/g, ' ');
+  const m = s.match(LINE);
+  if (!m) return { n: s, q: 0, u: '' };
+  const u = UNIT[(m[3] || 'бр').toLowerCase()] || ['бр', 1];
+  return { n: m[1].replace(/[,;]$/, '').trim(), q: parseFloat(m[2].replace(',', '.')) * u[1], u: u[0] };
+}
+const fmtNum = n => (Math.round(n * 10) / 10).toLocaleString('bg-BG', { maximumFractionDigits: 1 });
+function fmtQty(q, u) {
+  if (!q) return '';
+  if (u === 'г' && q >= 1000) return fmtNum(q / 1000) + ' кг';
+  if (u === 'мл' && q >= 1000) return fmtNum(q / 1000) + ' л';
+  return fmtNum(q) + ' ' + u;
+}
+const ingLine = i => i.q ? `${i.n} ${fmtQty(i.q, i.u)}` : i.n;
+const GROUPS = [
+  ['frozen', 'Замразени', /замразен/i],
+  ['cans', 'Консерви, сосове и подправки за купуване', /консерва|пасата|кокосово|песто|тахан|майонеза|кисели краставички|оризов оцет|нори|горчица/i],
+  ['sweet', 'Сладко и ядки', /шоколад|бисквит|бишкоти|пудинг|фурми|фъст|орехи|шамфъст|оризовки|протеин|кондензирано|кафява захар|пудра/i],
+  ['meat', 'Месо и риба', /пилеш|пиле|кайма|свинск|телеш|бекон|шунка|кренвирш|сьомга|риба|скариди|бутчета/i],
+  ['dairy', 'Мляко, сирена и яйца', /мляко|сирене|кашкавал|сметана|^масло|пармезан|моцарела|маскарпоне|рикота|скир|яйц/i],
+  ['veg', 'Плодове и зеленчуци', /картоф|лук|морков|чесън|домат|краставиц|чушк|тиквичк|гъби|зеле|карфиол|лимон|лайм|авокадо|банан|ябълк|магданоз|копър|целина|спанак|лапат|коприва|джинджифил/i],
+  ['dry', 'Паста, ориз, бобови и тесто', /паста|спагети|фиде|ориз|кори|леща|боб|нахут|ньоки|галета|лаваш|овесени|зърнена/i],
+  ['bread', 'Хляб', /хляб/i],
+  ['home', 'Провери дали имаш вкъщи', /^(сол|черен пипер|олио|зехтин|брашно|захар|червен пипер|пушен червен пипер|чубрица|кимион|джоджен|риган|розмарин|канела|ванилия|сода|бакпулвер|оцет|соев сос|доматено пюре|мед|какао|кафе|суха мая|бульон|къри|бяло вино)/i],
+];
+const groupOf = n => { const s = n.toLowerCase(); const hit = GROUPS.find(([k, , re]) => k === 'home' && re.test(s)) || GROUPS.find(([, , re]) => re.test(s)); return hit ? hit[0] : 'other'; };
+const GL = Object.fromEntries(GROUPS.map(([k, l]) => [k, l])); GL.other = 'Друго'; GL.extra = 'Добавени от теб';
+const GORDER = ['veg', 'meat', 'dairy', 'dry', 'bread', 'frozen', 'cans', 'sweet', 'other', 'extra', 'home'];
+
+const mealsOfWeek = w => Object.entries(S.meals).filter(([, m]) => m.date && weekOf(m.date) === w)
+  .sort((a, b) => a[1].date.localeCompare(b[1].date) || KINDS.findIndex(k => k[0] === a[1].kind) - KINDS.findIndex(k => k[0] === b[1].kind) || (a[1].order ?? 0) - (b[1].order ?? 0));
+function shopList(w) {
+  const map = {};
+  mealsOfWeek(w).forEach(([, m]) => { const r = S.rec[m.recipe]; if (!r || m.noShop) return;
+    (r.ing || []).forEach(s => { const i = parseIng(s); if (!i.n) return;
+      const key = `${w}|${i.n.toLowerCase()}`;
+      const o = map[key] || (map[key] = { key, name: i.n, parts: {}, g: groupOf(i.n), for: [] });
+      if (i.q) o.parts[i.u] = (o.parts[i.u] || 0) + i.q; if (!o.for.includes(r.name)) o.for.push(r.name); }); });
+  Object.values(map).forEach(o => o.qty = Object.entries(o.parts).map(([u, q]) => fmtQty(q, u)).join(' + '));
+  const items = Object.values(map);
+  Object.entries(S.shop).forEach(([id, x]) => { if (x.extra && x.week === w) items.push({ key: id, id, name: x.name, qty: '', g: 'extra', for: [], extra: true }); });
+  items.forEach(it => it.done = it.extra ? !!S.shop[it.id].done : !!(S.shop[it.key] && S.shop[it.key].done));
+  return items.sort((a, b) => GORDER.indexOf(a.g) - GORDER.indexOf(b.g) || a.name.localeCompare(b.name, 'bg'));
+}
+
+/* ---------- writes (same approach as the other pages: keep new docs locally until saved, retry short failures) ---------- */
+const pend = {}, busy = {}, creating = {};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fatal = e => e && ['invalid_argument', 'not_granted', 'permission_denied', 'quota_exceeded', 'revoked'].includes(e.code);
+function onWriteError(e) {
+  if (e && (e.code === 'not_granted' || e.code === 'permission_denied')) { if (!S.readOnly) { S.readOnly = true; render(); } }
+  else toast('Промяната не се записа. Провери връзката и опитай пак.');
+}
+const current = (col, id) => LOCAL[col][id] || S[KEYS[col]][id];
+async function attempt(fn) { let last; for (let i = 0; i < 5; i++) { try { return await fn(); } catch (e) { last = e; if (fatal(e)) throw e; await sleep(500 * (i + 1) + Math.random() * 400); } } throw last; }
+async function save(col, id, patch, isNew) {
+  if (!db || S.readOnly) return;
+  const key = col + '/' + id;
+  pend[key] = Object.assign(pend[key] || {}, patch);
+  if (isNew) creating[key] = true;
+  if (busy[key]) return;
+  busy[key] = true;
+  while (pend[key]) {
+    const p = pend[key]; delete pend[key];
+    const ref = db.collection(col).doc(id);
+    try {
+      if (creating[key]) { await attempt(() => ref.set(Object.assign({}, current(col, id), p))); delete creating[key]; delete LOCAL[col][id]; }
+      else {
+        try { await attempt(() => ref.update(p)); }
+        catch (e) { if (e && e.code === 'not_found' && S[KEYS[col]][id]) await attempt(() => ref.set(Object.assign({}, S[KEYS[col]][id], p))); else throw e; }
+      }
+    } catch (e) {
+      if (creating[key]) { delete creating[key]; delete LOCAL[col][id]; delete S[KEYS[col]][id]; render(); }
+      onWriteError(e);
+    }
+  }
+  busy[key] = false;
+}
+function create(col, id, data) { LOCAL[col][id] = data; S[KEYS[col]][id] = data; save(col, id, {}, true); }
+async function remove(col, id) { delete LOCAL[col][id]; delete S[KEYS[col]][id]; if (!db || S.readOnly) return; try { await attempt(() => db.collection(col).doc(id).delete()); } catch (e) { onWriteError(e); } }
+const patcher = col => (id, p) => { const o = S[KEYS[col]][id]; if (!o) return; Object.assign(o, p); if (LOCAL[col][id]) Object.assign(LOCAL[col][id], p); save(col, id, p); };
+const setR = patcher('recipes'), setM = patcher('meals');
+
+/* ---------- choosing dishes ---------- */
+const lastUsed = () => { const u = {}; Object.values(S.meals).forEach(m => { if (m.recipe && (!u[m.recipe] || m.date > u[m.recipe])) u[m.recipe] = m.date; }); return u; };
+const usedCount = () => { const u = {}; Object.values(S.meals).forEach(m => { u[m.recipe] = (u[m.recipe] || 0) + 1; }); return u; };
+// least recently planned first, with a little randomness among the top few
+function suggest(cats, { minKeeps = 0, avoid = new Set() } = {}) {
+  const lu = lastUsed();
+  const pool = Object.entries(S.rec).filter(([id, r]) => cats.includes(r.cat) && r.auto !== false && (r.ing || []).length && (Number(r.keeps) || 1) >= minKeeps && !avoid.has(id))
+    .sort((a, b) => (lu[a[0]] || '').localeCompare(lu[b[0]] || ''));
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * Math.min(5, pool.length))][0];
+}
+function planWeek(w) {
+  const avoid = new Set(mealsOfWeek(w).map(([, m]) => m.recipe)), prev = mealsOfWeek(addDays(w, -7));
+  let n = 0; const add = (date, kind, recipe) => { if (!recipe) return; avoid.add(recipe); create('meals', uid('g'), { date, kind, recipe, note: '', done: false, order: n++, noShop: false }); };
+  const sun = w, wed = addDays(w, 3), sat = addDays(w, 6);
+  add(sun, 'cook', suggest(['main'], { minKeeps: 3, avoid })); add(sun, 'cook', suggest(['main'], { minKeeps: 3, avoid })); add(sun, 'cook', suggest(['side'], { minKeeps: 1, avoid }));
+  add(wed, 'cook', suggest(['main'], { minKeeps: 2, avoid })); add(wed, 'cook', suggest(['main'], { minKeeps: 3, avoid })); add(wed, 'cook', suggest(['side'], { avoid }));
+  if (!prev.some(([, m]) => m.kind === 'dessert')) add(sun, 'dessert', suggest(['dessert'], { minKeeps: 2, avoid }));
+  [sun, wed, sat].forEach(d => add(d, 'breakfast', suggest(['breakfast'], { avoid })));
+}
+
+/* ---------- rendering ---------- */
+const typing = () => { const a = document.activeElement; return a && root.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && !a.classList.contains('live'); };
+function schedule() { if (typing()) S.dirty = true; else render(); }
+root.addEventListener('focusout', () => setTimeout(() => { if (S.dirty && !typing()) { S.dirty = false; render(); } }, 0));
+const ready = () => Object.keys(KEYS).every(c => S.got[c]);
+const allWeeks = () => [...new Set(Object.values(S.meals).filter(m => m.date).map(m => weekOf(m.date)))].sort();
+function pickWeek(ws) {
+  if (S.week && ws.includes(S.week)) return S.week;
+  const t = weekOf(today()); return ws.includes(t) ? t : (ws.find(w => w > t) || ws[ws.length - 1] || '');
+}
+const tagsHtml = r => { if (!r) return ''; const t = [];
+  if (r.isNew) t.push('<span class="tag new">ново</span>');
+  if (r.check) t.push('<span class="tag chk">за проверка</span>');
+  if (r.cat === 'main' || (Number(r.keeps) || 1) >= 2) t.push(`<span class="tag">${keepsTxt(Number(r.keeps) || 1)}</span>`);
+  return `<span class="tags">${t.join('')}</span>`; };
+
+function render() {
+  if (S.noDb) { root.innerHTML = `<div class="card state">Нямаш достъп до данните. Излез и влез отново.</div>`; return; }
+  if (!ready()) { root.innerHTML = `<div class="state">Зареждане…</div>`; return; }
+  const dis = S.readOnly ? ' disabled' : '';
+  let h = '';
+  if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
+  h += `<div class="tabs" role="group" aria-label="Изглед">${[['plan', 'План'], ['shop', 'Пазаруване'], ['rec', 'Рецептурник']].map(([k, l]) => `<button data-act="tab" data-v="${k}" aria-pressed="${S.tab === k}">${l}</button>`).join('')}</div>`;
+  if (S.tab === 'rec') h += recView(dis);
+  else {
+    const ws = allWeeks(); S.week = pickWeek(ws);
+    h += `<nav class="weeks" aria-label="Седмици">${ws.map(w => { const n = mealsOfWeek(w).filter(([, m]) => m.kind === 'cook').length;
+      return `<button class="wchip" data-act="week" data-v="${w}" aria-pressed="${w === S.week}"><b>${esc(weekLabel(w))}</b><small>${w === weekOf(today()) ? 'тази седмица' : n + ' ястия'}</small></button>`; }).join('')}
+      ${S.readOnly ? '' : `<button class="wchip add" data-act="newweek"><b>+ Нова седмица</b><small>попълва се сама</small></button>`}</nav>`;
+    if (!S.week) h += `<div class="card state">Още няма план. Натисни „Нова седмица“.</div>`;
+    else h += S.tab === 'plan' ? planView(S.week, dis) : shopView(S.week, dis);
+  }
+  if (S.sel) { [...S.sel].forEach(x => { if (!S.meals[x] && !S.rec[x]) S.sel.delete(x); }); h += selBar(); }
+  document.body.classList.toggle('selecting', !!S.sel);
+  const keep = document.activeElement && document.activeElement.classList.contains('live') ? { id: document.activeElement.id, pos: document.activeElement.selectionStart } : null;
+  root.innerHTML = h;
+  if (keep) { const el = document.getElementById(keep.id); if (el) { el.focus(); try { el.setSelectionRange(keep.pos, keep.pos); } catch (e) {} } }
+}
+
+function planView(w, dis) {
+  const ms = mealsOfWeek(w), tk = today();
+  const days = [...new Set(ms.map(([, m]) => m.date))];
+  let h = '';
+  if (!ms.length) h += `<div class="card state">Тази седмица е празна.</div>`;
+  days.forEach(d => {
+    const dm = ms.filter(([, m]) => m.date === d), cooks = dm.some(([, m]) => m.kind === 'cook');
+    h += `<section class="list${d === tk ? ' today' : d < tk ? ' past' : ''}" aria-label="${esc(dayName(d))}">
+      <div class="day-h"><h3>${esc(dayName(d))}</h3>${cooks ? '<span class="cook">готвиш</span>' : d === tk ? '<span class="tag">днес</span>' : ''}</div>`;
+    KINDS.forEach(([k, l]) => { const rows = dm.filter(([, m]) => m.kind === k); if (!rows.length) return;
+      h += `<div class="grp-h">${l}</div>` + rows.map(([id, m]) => mealHtml(id, m, w, dis)).join(''); });
+    h += `</section>`;
+  });
+  if (!S.readOnly && !S.sel) {
+    const opts = [0, 1, 2, 3, 4, 5, 6].map(i => addDays(w, i)).map(d => `<option value="${d}"${d === addDays(w, 3) ? ' selected' : ''}>${esc(dayName(d))}</option>`).join('');
+    const recs = CATS.map(([c, l]) => `<optgroup label="${l}">${Object.entries(S.rec).filter(([, r]) => r.cat === c).sort((a, b) => a[1].name.localeCompare(b[1].name, 'bg')).map(([id, r]) => `<option value="${esc(id)}">${esc(r.name)}</option>`).join('')}</optgroup>`).join('');
+    h += `<form class="list add" data-act="addmeal" style="border-top:1px solid var(--line)"><select class="day-in" id="am-day" aria-label="Ден">${opts}</select><select id="am-rec" aria-label="Ястие"><option value="">Добави ястие…</option>${recs}</select><button class="btn" type="submit">Добави</button></form>`;
+  }
+  if (!S.readOnly) h += `<div class="toolsrow"><button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`;
+  h += `<p class="hint">Докосни ястие, за да го смениш, преместиш или махнеш. Отметката значи „сготвено“. Ястията с „за проверка“ са тези с въпросителни в твоя рецептурник.</p>`;
+  return h;
+}
+function mealHtml(id, m, w, dis) {
+  const r = S.rec[m.recipe], name = r ? r.name : 'Изтрито ястие';
+  const note = [m.note, m.noShop ? 'не влиза в пазаруването' : ''].filter(Boolean).join(' · ');
+  if (S.sel) { const on = S.sel.has(id);
+    return `<div class="item${on ? ' picked' : ''}"><div class="item-row">
+      <input type="checkbox" class="check pick" data-act="pick" data-id="${esc(id)}" ${on ? 'checked' : ''} aria-label="Избери: ${esc(name)}">
+      <button class="item-main" data-act="pick" data-id="${esc(id)}" aria-pressed="${on}"><span class="item-name">${esc(name)}</span>${note ? `<span class="item-note">${esc(note)}</span>` : ''}</button><span></span></div></div>`; }
+  const open = S.open.has(id);
+  let h = `<div class="item${m.done ? ' is-done' : ''}"><div class="item-row">
+    <input type="checkbox" class="check" data-act="done" data-id="${esc(id)}" ${m.done ? 'checked' : ''} aria-label="Сготвено: ${esc(name)}"${dis}>
+    <button class="item-main" data-act="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="item-name">${esc(name)}</span>${tagsHtml(r)}${note ? `<span class="item-note">${esc(note)}</span>` : ''}</button><span></span></div>`;
+  if (open) { const armed = S.armed === 'm:' + id;
+    const days = [0, 1, 2, 3, 4, 5, 6].map(i => addDays(w, i)).map(d => `<option value="${d}"${d === m.date ? ' selected' : ''}>${esc(dayName(d))}</option>`).join('');
+    h += `<div class="edit">`;
+    if (r && r.note) h += `<p class="hint">${esc(r.note)}</p>`;
+    if (r && (r.ing || []).length) h += `<p class="hint">${r.ing.map(esc).join(' · ')}</p>`;
+    if (S.pick === id) h += pickerHtml(id, m);
+    h += `<div class="row2"><label class="f">Ден<select data-mid="${esc(id)}" data-f="date"${dis}>${days}</select></label>
+      <label class="f">Бележка<input id="m-note-${esc(id)}" data-mid="${esc(id)}" data-f="note" value="${esc(m.note)}" placeholder="по желание"${dis}></label></div>
+      <div class="cbs"><label><input type="checkbox" data-mid="${esc(id)}" data-f="noShop" ${m.noShop ? 'checked' : ''}${dis}> Без пазаруване (остатък или вече го имаш)</label></div>
+      <div class="edit-foot"><div class="grp"><button class="btn" data-act="toggle" data-id="${esc(id)}">Готово</button>
+      <button class="btn" data-act="openpick" data-id="${esc(id)}"${dis}>${S.pick === id ? 'Скрий списъка' : 'Смени'}</button>
+      <button class="btn" data-act="other" data-id="${esc(id)}"${dis}>Предложи друго</button></div>
+      <button class="btn danger${armed ? ' armed' : ''}" data-act="delmeal" data-id="${esc(id)}"${dis}>${armed ? 'Да, махни' : 'Махни от плана'}</button></div></div>`; }
+  return h + `</div>`;
+}
+function pickerHtml(id, m) {
+  const cats = catsFor(m.kind), q = S.pq.trim().toLowerCase(), lu = lastUsed();
+  const list = Object.entries(S.rec).filter(([rid, r]) => cats.includes(r.cat) && rid !== m.recipe && (!q || r.name.toLowerCase().includes(q)))
+    .sort((a, b) => a[1].name.localeCompare(b[1].name, 'bg'));
+  return `<div class="picker"><input class="search live" id="pq" data-act="pq" placeholder="Търси в рецептурника…" value="${esc(S.pq)}" autocomplete="off" aria-label="Търси ястие">
+    <div class="opts">${list.length ? list.map(([rid, r]) => `<button class="opt" data-act="swap" data-id="${esc(id)}" data-r="${esc(rid)}"><span>${esc(r.name)}${r.isNew ? ' · ново' : ''}</span><small>${lu[rid] ? 'последно ' + dt(lu[rid]).getDate() + ' ' + MS[dt(lu[rid]).getMonth()] : 'не е в плана'}</small></button>`).join('') : '<div class="empty">Нищо не намерих.</div>'}</div></div>`;
+}
+
+function shopView(w, dis) {
+  const items = shopList(w), buy = items.filter(i => i.g !== 'home'), done = buy.filter(i => i.done).length;
+  const dishes = mealsOfWeek(w).filter(([, m]) => !m.noShop && S.rec[m.recipe]).length;
+  let h = `<section class="card" style="display:grid;gap:12px" aria-label="Обобщение">
+    <div class="sec-head"><h2>Пазаруване за ${esc(weekLabel(w))}</h2><span class="sec-meta">за ${dishes} ястия</span></div>
+    <div class="sum3"><div><span>Продукти</span><b>${buy.length}</b></div><div class="done"><span>Купени</span><b>${done}</b></div><div class="left"><span>Остават</span><b>${buy.length - done}</b></div></div>
+    ${buy.length ? `<div class="bar" aria-hidden="true"><span style="width:${(done / buy.length * 100).toFixed(1)}%"></span></div>` : ''}
+    <p class="hint">Количествата са сборът от рецептите за седмицата, за двама. Пазарувай в събота или неделя сутрин за двете готвения.</p></section>`;
+  h += `<section class="list">`;
+  let g = '';
+  items.forEach(i => { if (i.g !== g) { g = i.g; h += `<div class="grp-h">${esc(GL[g])}</div>`; }
+    const lbl = i.extra || i.g === 'home' ? '' : i.for.join(', ');
+    h += `<div class="item${i.done ? ' is-done' : ''}"><div class="item-row">
+      <input type="checkbox" class="check" data-act="buy" data-k="${esc(i.key)}" data-x="${i.extra ? 1 : ''}" ${i.done ? 'checked' : ''} aria-label="Купено: ${esc(i.name)}"${dis}>
+      <div class="item-main"><span class="item-name">${esc(i.name)}</span>${lbl ? `<span class="item-note">${esc(lbl)}</span>` : ''}</div>
+      ${i.extra && !S.readOnly ? `<button class="xbtn" data-act="delx" data-id="${esc(i.id)}" aria-label="Махни ${esc(i.name)}">×</button>` : `<span class="qty">${esc(i.qty)}</span>`}</div></div>`; });
+  if (!items.length) h += `<div class="empty">Няма ястия с продукти тази седмица.</div>`;
+  if (!S.readOnly) h += `<form class="add" data-act="addx"><input id="ax-name" placeholder="Още нещо за купуване…" aria-label="Още нещо за купуване" autocomplete="off"><button class="btn" type="submit">Добави</button></form>`;
+  h += `</section><div class="toolsrow"><button class="chipbtn" data-act="copy">Копирай списъка</button>${!S.readOnly && items.some(i => i.done) ? `<button class="chipbtn" data-act="unbuy">Махни отметките</button>` : ''}</div>`;
+  return h;
+}
+
+function recView(dis) {
+  const q = S.rq.trim().toLowerCase(), uc = usedCount();
+  const all = Object.entries(S.rec);
+  const list = all.filter(([, r]) => (!S.rcat || r.cat === S.rcat) && (!q || r.name.toLowerCase().includes(q) || (r.ing || []).some(s => s.toLowerCase().includes(q)))
+    && (!S.rflag || (S.rflag === 'check' ? r.check : r.isNew)));
+  let h = `<input class="search live" id="rq" data-act="rq" type="search" placeholder="Търси ястие или продукт…" value="${esc(S.rq)}" autocomplete="off" aria-label="Търси в рецептурника">
+    <div class="chips"><button class="chipbtn" data-act="rcat" data-v="" aria-pressed="${!S.rcat}">Всички ${all.length}</button>${CATS.map(([c, l]) => `<button class="chipbtn" data-act="rcat" data-v="${c}" aria-pressed="${S.rcat === c}">${l} ${all.filter(([, r]) => r.cat === c).length}</button>`).join('')}</div>
+    <div class="chips"><button class="chipbtn" data-act="rflag" data-v="check" aria-pressed="${S.rflag === 'check'}">За проверка</button><button class="chipbtn" data-act="rflag" data-v="new" aria-pressed="${S.rflag === 'new'}">Нови предложения</button></div>`;
+  h += `<section class="list">`;
+  CATS.forEach(([c, l]) => { const rows = list.filter(([, r]) => r.cat === c).sort((a, b) => a[1].name.localeCompare(b[1].name, 'bg')); if (!rows.length) return;
+    h += `<div class="grp-h">${l}</div>` + rows.map(([id, r]) => recHtml(id, r, uc[id] || 0, dis)).join(''); });
+  if (!list.length) h += `<div class="empty">Нищо не намерих.</div>`;
+  if (!S.readOnly && !S.sel) h += `<form class="add" data-act="addrec"><input id="ar-name" placeholder="Ново ястие…" aria-label="Ново ястие" autocomplete="off"><select id="ar-cat" class="day-in" aria-label="Вид">${CATS.map(([c, l]) => `<option value="${c}"${(S.rcat || 'main') === c ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn" type="submit">Добави</button></form>`;
+  h += `</section>`;
+  if (!S.readOnly) h += `<div class="toolsrow"><button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`;
+  return h;
+}
+function recHtml(id, r, used, dis) {
+  const note = [r.note, used ? `в плана ${used} ${used === 1 ? 'път' : 'пъти'}` : ''].filter(Boolean).join(' · ');
+  if (S.sel) { const on = S.sel.has(id);
+    return `<div class="item${on ? ' picked' : ''}"><div class="item-row">
+      <input type="checkbox" class="check pick" data-act="pick" data-id="${esc(id)}" ${on ? 'checked' : ''} aria-label="Избери: ${esc(r.name)}">
+      <button class="item-main" data-act="pick" data-id="${esc(id)}" aria-pressed="${on}"><span class="item-name">${esc(r.name)}</span>${note ? `<span class="item-note">${esc(note)}</span>` : ''}</button><span></span></div></div>`; }
+  const open = S.open.has(id);
+  let h = `<div class="item"><div class="item-row" style="grid-template-columns:1fr auto">
+    <button class="item-main" data-act="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="item-name">${esc(r.name)}</span>${tagsHtml(r)}${note ? `<span class="item-note">${esc(note)}</span>` : ''}</button>
+    <span class="sec-meta">${(r.ing || []).length ? '' : 'без съставки'}</span></div>`;
+  if (open) { const armed = S.armed === 'r:' + id, w = S.week || weekOf(today());
+    const days = [...Array(14).keys()].map(i => addDays(weekOf(today()) > w ? weekOf(today()) : w, i)).map(d => `<option value="${d}">${esc(dayName(d))}</option>`).join('');
+    h += `<div class="edit" style="padding-left:14px">
+      <div class="row2"><label class="f">Име<input id="r-name-${esc(id)}" data-rid="${esc(id)}" data-f="name" value="${esc(r.name)}"${dis}></label>
+      <label class="f">Вид<select data-rid="${esc(id)}" data-f="cat"${dis}>${CATS.map(([c, l]) => `<option value="${c}"${r.cat === c ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
+      <div class="row2"><label class="f">Колко дни държи в хладилника<input id="r-keeps-${esc(id)}" data-rid="${esc(id)}" data-f="keeps" inputmode="numeric" value="${Number(r.keeps) || 1}"${dis}></label>
+      <label class="f">Бележка<input id="r-note-${esc(id)}" data-rid="${esc(id)}" data-f="note" value="${esc(r.note)}" placeholder="напр. рецептата е в Инстаграм"${dis}></label></div>
+      <label class="f">Продукти, по един на ред: име и количество (за двама, за целия съд)<textarea id="r-ing-${esc(id)}" data-rid="${esc(id)}" data-f="ing" placeholder="Пилешко филе 800 г&#10;Яйца 2 бр&#10;Сол"${dis}>${esc((r.ing || []).join('\n'))}</textarea></label>
+      <div class="cbs"><label><input type="checkbox" data-rid="${esc(id)}" data-f="check" ${r.check ? 'checked' : ''}${dis}> За проверка</label>
+      <label><input type="checkbox" data-rid="${esc(id)}" data-f="isNew" ${r.isNew ? 'checked' : ''}${dis}> Ново, за пробване</label>
+      <label><input type="checkbox" data-rid="${esc(id)}" data-f="auto" ${r.auto !== false ? 'checked' : ''}${dis}> Предлагай го в нова седмица</label></div>
+      ${S.readOnly ? '' : `<div class="add" style="border:1px solid var(--line);border-radius:10px"><select class="day-in" id="rp-day-${esc(id)}" aria-label="Ден" style="flex:1 1 180px">${days}</select><button class="btn" data-act="toplan" data-id="${esc(id)}">Добави в плана</button></div>`}
+      <div class="edit-foot"><button class="btn" data-act="toggle" data-id="${esc(id)}">Готово</button>
+      <button class="btn danger${armed ? ' armed' : ''}" data-act="delrec" data-id="${esc(id)}"${dis}>${armed ? 'Да, изтрий' : 'Изтрий'}</button></div></div>`; }
+  return h + `</div>`;
+}
+function selBar() {
+  const n = S.sel.size, armed = S.armed === 'seldel', rec = S.tab === 'rec';
+  return `<div class="selbar" role="region" aria-label="Избрани"><span class="selcount">${n ? `Избрани: ${n}` : rec ? 'Докосни ястията, които искаш' : 'Докосни ястията от плана'}</span>
+    <span class="selbtns"><button class="btn" data-act="selall">Избери всички</button>${n ? `<button class="btn" data-act="selnone">Махни избора</button>` : ''}
+    <button class="btn danger${armed ? ' armed' : ''}" data-act="seldel"${n ? '' : ' disabled'}>${armed ? `Да, ${rec ? 'изтрий' : 'махни'} ${n}` : rec ? 'Изтрий избраните' : 'Махни избраните'}</button></span></div>`;
+}
+
+/* ---------- events ---------- */
+function shopText(w) {
+  const items = shopList(w).filter(i => !i.done); let g = '', t = `Пазаруване ${weekLabel(w)}\n`;
+  items.forEach(i => { if (i.g !== g) { g = i.g; t += `\n${GL[g]}\n`; } t += `- ${i.name}${i.qty ? ' — ' + i.qty : ''}\n`; });
+  return t;
+}
+root.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || ((b.tagName === 'INPUT' || b.tagName === 'SELECT') && b.dataset.act !== 'pick')) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  if (!['delmeal', 'delrec', 'seldel'].includes(act)) S.armed = null;
+  if (act === 'tab') { S.tab = b.dataset.v; S.sel = null; S.open.clear(); S.pick = null; try { localStorage.setItem('zad-cook-tab', S.tab); } catch (err) {} }
+  else if (act === 'week') { S.week = b.dataset.v; S.open.clear(); S.sel = null; S.pick = null; }
+  else if (act === 'newweek') { const ws = allWeeks(), t = weekOf(today()); const w = ws.length ? (ws[ws.length - 1] < t ? t : addDays(ws[ws.length - 1], 7)) : t;
+    planWeek(w); S.week = w; S.open.clear(); toast('Нова седмица: ' + weekLabel(w) + '. Смени каквото не ти харесва.'); }
+  else if (act === 'toggle') { if (S.open.has(id)) { S.open.delete(id); if (S.pick === id) S.pick = null; } else S.open.add(id); }
+  else if (act === 'openpick') { S.pick = S.pick === id ? null : id; S.pq = ''; }
+  else if (act === 'swap') { const r = S.rec[b.dataset.r]; setM(id, { recipe: b.dataset.r }); S.pick = null; toast('Сменено с: ' + r.name); }
+  else if (act === 'other') { const m = S.meals[id], cur = S.rec[m.recipe];
+    const cats = cur ? [cur.cat] : catsFor(m.kind), avoid = new Set(mealsOfWeek(weekOf(m.date)).map(([, x]) => x.recipe));
+    const nr = suggest(cats, { minKeeps: m.kind === 'cook' && cur && cur.cat === 'main' ? Math.min(2, Number(cur.keeps) || 1) : 0, avoid });
+    if (nr) { setM(id, { recipe: nr }); toast('Предложение: ' + S.rec[nr].name); } else toast('Няма друго подходящо ястие.'); }
+  else if (act === 'delmeal') { const m = S.meals[id];
+    if (S.armed === 'm:' + id && m) { S.armed = null; S.open.delete(id); remove('meals', id); toast('Махнато: ' + ((S.rec[m.recipe] || {}).name || 'ястие')); } else S.armed = 'm:' + id; }
+  else if (act === 'selmode') { S.sel = S.sel ? null : new Set(); S.open.clear(); S.pick = null; }
+  else if (act === 'pick') { if (S.sel) S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); }
+  else if (act === 'selall') root.querySelectorAll('button[data-act="pick"]').forEach(x => S.sel.add(x.dataset.id));
+  else if (act === 'selnone') S.sel.clear();
+  else if (act === 'seldel') {
+    if (S.armed === 'seldel') { S.armed = null; let n = 0; [...S.sel].forEach(x => { if (S.meals[x]) { remove('meals', x); n++; } else if (S.rec[x]) { remove('recipes', x); n++; } }); S.sel = null; toast((S.tab === 'rec' ? 'Изтрити: ' : 'Махнати: ') + n); }
+    else if (S.sel.size) S.armed = 'seldel';
+  }
+  else if (act === 'rcat') S.rcat = b.dataset.v;
+  else if (act === 'rflag') S.rflag = S.rflag === b.dataset.v ? '' : b.dataset.v;
+  else if (act === 'delrec') { const r = S.rec[id];
+    if (S.armed === 'r:' + id && r) { S.armed = null; S.open.delete(id); remove('recipes', id); toast('Изтрито: ' + r.name); } else S.armed = 'r:' + id; }
+  else if (act === 'toplan') { const r = S.rec[id], d = document.getElementById('rp-day-' + id).value;
+    create('meals', uid('g'), { date: d, kind: kindOf(r.cat), recipe: id, note: '', done: false, order: 99, noShop: false }); S.week = weekOf(d); toast(`${r.name}: ${dayName(d).toLowerCase()}`); }
+  else if (act === 'delx') { const x = S.shop[id]; if (x) { remove('gshop', id); toast('Махнато: ' + x.name); } }
+  else if (act === 'unbuy') { Object.entries(S.shop).forEach(([sid, x]) => { if (x.week !== S.week) return; if (x.extra) { if (x.done) patcher('gshop')(sid, { done: false }); } else remove('gshop', sid); }); toast('Отметките са махнати.'); }
+  else if (act === 'copy') { const t = shopText(S.week);
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Списъкът е копиран. Постави го в съобщение.'), () => toast('Не успях да копирам.')); return; }
+  render();
+});
+root.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.act === 'pq') { S.pq = t.value; render(); }
+  else if (t.dataset.act === 'rq') { S.rq = t.value; render(); }
+});
+root.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.act === 'done') { setM(t.dataset.id, { done: t.checked }); render(); return; }
+  if (t.dataset.act === 'buy') {
+    const k = t.dataset.k;
+    if (t.dataset.x) patcher('gshop')(k, { done: t.checked });
+    else if (t.checked) create('gshop', k, { week: S.week, key: k, done: true }); else remove('gshop', k);
+    render(); return;
+  }
+  if (t.dataset.mid && S.meals[t.dataset.mid]) {
+    const id = t.dataset.mid, k = t.dataset.f, v = t.type === 'checkbox' ? t.checked : t.value.trim();
+    if (k === 'date' && !v) return;
+    setM(id, { [k]: v }); if (k === 'date' || k === 'noShop') render(); else schedule(); return;
+  }
+  if (t.dataset.rid && S.rec[t.dataset.rid]) {
+    const id = t.dataset.rid, k = t.dataset.f, r = S.rec[id]; let v = t.type === 'checkbox' ? t.checked : t.value.trim();
+    if (k === 'name' && !v) { t.value = r.name; return; }
+    if (k === 'keeps') { v = parseInt(v, 10); if (!(v >= 1)) { t.value = Number(r.keeps) || 1; return; } }
+    if (k === 'ing') v = v.split('\n').map(s => s.trim()).filter(Boolean).map(s => ingLine(parseIng(s)));
+    setR(id, { [k]: v }); if (t.type === 'checkbox' || k === 'cat') render(); else schedule();
+  }
+});
+root.addEventListener('submit', e => {
+  e.preventDefault(); if (S.readOnly) return;
+  const f = e.target, act = f.dataset.act;
+  if (act === 'addmeal') {
+    const d = document.getElementById('am-day').value, rid = document.getElementById('am-rec').value, r = S.rec[rid];
+    if (!d || !r) return;
+    create('meals', uid('g'), { date: d, kind: kindOf(r.cat), recipe: rid, note: '', done: false, order: 99, noShop: false });
+    toast(`${r.name}: ${dayName(d).toLowerCase()}`); render(); return;
+  }
+  if (act === 'addx') {
+    const name = document.getElementById('ax-name').value.trim(); if (!name) return;
+    create('gshop', uid('x'), { week: S.week, name, extra: true, done: false });
+    render(); document.getElementById('ax-name').focus(); return;
+  }
+  if (act === 'addrec') {
+    const name = document.getElementById('ar-name').value.trim(), cat = document.getElementById('ar-cat').value; if (!name) return;
+    const id = uid('r'); create('recipes', id, { cat, name, check: false, note: '', keeps: cat === 'main' ? 3 : 1, auto: true, isNew: false, fav: false, ing: [] });
+    S.open.add(id); S.rq = ''; S.rflag = ''; toast('Добавено. Попълни продуктите, за да влиза в пазаруването.'); render();
+  }
+});
+setInterval(() => { if (ready() && !typing()) render(); }, 60000);
+
+/* ---------- data ---------- */
+(async () => {
+  db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+  if (!db) { S.noDb = true; render(); return; }
+  const fail = e => { if (e && e.code === 'revoked') { S.noDb = true; render(); } };
+  Object.keys(KEYS).forEach(col => db.collection(col).onSnapshot(s => {
+    const m = {}; s.docs.forEach(d => m[d.id] = Object.assign({}, d.data()));
+    Object.keys(LOCAL[col]).forEach(id => { if (!m[id]) m[id] = LOCAL[col][id]; });
+    S[KEYS[col]] = m; S.got[col] = 1; schedule();
+  }, fail));
+})();
+</script>
+
+<div class="wrap app-wrap" style="margin-top:28px">
+  <section class="card" style="display:grid;gap:10px">
+    <div class="acct"><span>Влязъл като <b id="acct-email"></b></span><button class="btn" type="button" onclick="zadSb.auth.signOut()">Изход</button></div>
+  </section>
+</div>
