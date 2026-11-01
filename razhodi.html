@@ -1,0 +1,492 @@
+<!doctype html><html lang="bg"><head><meta charset="utf-8"><title>Месечни разноски</title><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#F2F4F8" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#11141A" media="(prefers-color-scheme: dark)"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Задачи"><meta name="referrer" content="strict-origin-when-cross-origin"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://dhydrtoxydaqxdvprjlp.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;1,7..72,500&family=Onest:wght@400;500;600&display=swap">
+<style>
+/* Layout: month picker on top, then the chosen month: total, expense rows, events, days off */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --ink: #1D2330; --muted: #5F6878; --line: #DCE1EA;
+  --accent: #2F5C8F; --accent-soft: #E0E9F4; --on-accent: #FFFFFF;
+  --ok: #357552; --ok-soft: #DFEFE5; --wait: #94590A; --wait-soft: #FAEDD6; --danger: #B3261E; --danger-soft: #FBE7E5;
+  --display: "Literata", Georgia, "Times New Roman", serif;
+  --body: "Onest", "Segoe UI", Roboto, Arial, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11141A; --surface: #1A1F28; --ink: #E8ECF3; --muted: #9AA3B3; --line: #2C3340;
+  --accent: #8DB4E6; --accent-soft: #1C2A3D; --on-accent: #0B1A2C;
+  --ok: #7CC59A; --ok-soft: #1B3025; --wait: #E7B05A; --wait-soft: #372A15; --danger: #F2827A; --danger-soft: #3B1C1A;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11141A; --surface: #1A1F28; --ink: #E8ECF3; --muted: #9AA3B3; --line: #2C3340;
+  --accent: #8DB4E6; --accent-soft: #1C2A3D; --on-accent: #0B1A2C;
+  --ok: #7CC59A; --ok-soft: #1B3025; --wait: #E7B05A; --wait-soft: #372A15; --danger: #F2827A; --danger-soft: #3B1C1A;
+  color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 60px }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance }
+h1 { font-size: 1.9rem; line-height: 1.15 }
+.sub { color: var(--muted); margin: 4px 0 0 }
+button, input, select, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+button:disabled { cursor: default; opacity: .5 }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px }
+.banner { background: var(--wait-soft); border-radius: var(--r); padding: 12px 14px; font-size: .92rem }
+.state { text-align: center; color: var(--muted); padding: 30px 10px }
+.hint { font-size: .85rem; color: var(--muted); margin: 0 }
+
+/* months */
+.months { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin }
+.mchip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 7px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 0; min-width: 0 }
+.mchip b { font-weight: 600 }
+.mchip small { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.mchip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.mchip[aria-pressed="true"] small { color: var(--on-accent); opacity: .85 }
+.mchip.add { border-style: dashed; color: var(--muted); justify-content: center }
+
+/* summary */
+.mtitle { display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.mtitle h2 { font-size: 1.5rem }
+.sum3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.sum3 div { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.sum3 span { font-size: .8rem; color: var(--muted) }
+.sum3 b { font-family: var(--display); font-size: 1.5rem; line-height: 1.15; font-variant-numeric: tabular-nums }
+.sum3 .total { border: 1px solid var(--line) }
+.sum3 .paid b { color: var(--ok) } .sum3 .left b { color: var(--wait) }
+@media (max-width: 460px) { .sum3 b { font-size: 1.12rem } .sum3 div { padding: 8px } }
+.warn { background: var(--wait-soft); color: var(--ink); border-radius: 12px; padding: 10px 12px; font-size: .9rem }
+.warn b { font-variant-numeric: tabular-nums }
+.okline { font-size: .88rem; color: var(--ok) }
+.bar { display: flex; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden }
+.bar span { display: block; height: 100%; background: var(--ok) }
+
+/* sections + rows */
+.sec { display: flex; flex-direction: column; gap: 10px }
+.sec-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap }
+.sec-head h2 { font-size: 1.3rem }
+.sec-meta { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.empty { padding: 14px 16px; color: var(--muted); font-size: .9rem }
+.item { border-top: 1px solid var(--line) }
+.item:first-child { border-top: 0 }
+.item-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 11px 14px }
+.check { appearance: none; -webkit-appearance: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--muted); background: var(--surface); margin: 0; display: grid; place-content: center; cursor: pointer }
+.check::after { content: ""; width: 12px; height: 7px; border: solid var(--surface); border-width: 0 0 2.5px 2.5px; transform: rotate(-45deg) translate(1px,-1px); opacity: 0 }
+.check:checked { background: var(--ok); border-color: var(--ok) }
+.check:checked::after { opacity: 1 }
+.check.pick:checked { background: var(--accent); border-color: var(--accent) }
+.item.picked { background: var(--accent-soft) }
+.item-main { min-width: 0; text-align: left; border: 0; background: none; padding: 0; display: flex; flex-direction: column; gap: 2px }
+.item-name { font-weight: 500; overflow-wrap: anywhere }
+.item-note { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere }
+.item.is-done .item-name { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted) }
+.amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap }
+.item.is-done .amt { color: var(--muted); font-weight: 400 }
+.tfoot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; background: var(--bg) }
+.tfoot b { font-size: 1.05rem }
+.edit { padding: 4px 14px 16px 52px; display: grid; gap: 12px }
+@media (max-width: 460px) { .edit { padding-left: 14px } }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.row3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px }
+@media (max-width: 460px) { .row2, .row3 { grid-template-columns: 1fr } }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); letter-spacing: .02em; min-width: 0 }
+.f input, .f select, .f textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px; font-size: .95rem; color: var(--ink); width: 100%; min-width: 0 }
+.edit-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center }
+.edit-foot .grp { display: flex; gap: 6px; flex-wrap: wrap }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 14px; font-weight: 500 }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.btn.danger { color: var(--danger) }
+.btn.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--surface) }
+.chipbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 5px 12px; font-size: .88rem }
+.chipbtn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 500 }
+.iconbtn { border: 1px solid transparent; background: none; border-radius: 8px; padding: 2px 8px; color: var(--muted); font-size: 1.2rem; line-height: 1 }
+.iconbtn:hover { border-color: var(--line) }
+.menu { display: grid; gap: 10px; background: var(--accent-soft); border-radius: var(--r); padding: 12px }
+.add { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg) }
+.add input { flex: 1 1 140px; min-width: 0; border: 1px dashed var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px }
+.add input.amt-in { flex: 0 0 84px }
+.add input.d-in { flex: 0 1 150px } .add input.t-in { flex: 0 1 104px }
+.toolsrow { display: flex; justify-content: flex-end }
+
+/* events */
+.tile { width: 54px; border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 4px 0 5px; line-height: 1.05; font-variant-numeric: tabular-nums }
+.tile i { font-style: normal; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted) }
+.tile b { font-family: var(--display); font-size: 1.35rem }
+.tile.today { background: var(--accent); color: var(--on-accent) } .tile.today i { color: var(--on-accent) }
+.tile.past { opacity: .55 }
+.ev-time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .88rem; white-space: nowrap; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px }
+.rem { font-size: .72rem; color: var(--accent); text-decoration: none; font-weight: 500 }
+.item.past .item-name { color: var(--muted) }
+
+/* days off */
+.cal { display: grid; gap: 8px; padding: 14px }
+.cgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px }
+.cgrid .wd { text-align: center; font-size: .72rem; color: var(--muted); padding-bottom: 2px }
+.cgrid .wd:nth-child(n+6) { color: var(--wait) }
+.day { aspect-ratio: 1; max-height: 48px; border: 1px solid transparent; background: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; font-size: .92rem; padding: 0; position: relative; -webkit-user-select: none; user-select: none }
+.day.we { color: var(--muted) }
+.day.blank { visibility: hidden }
+.day:not(.blank):not(:disabled):hover { border-color: var(--line) }
+.day.today { border-color: var(--accent); font-weight: 700 }
+.day.leave { background: var(--accent); color: var(--on-accent); font-weight: 700 }
+.day .dot { position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--wait) }
+.day.leave .dot { background: var(--on-accent) }
+.lchips { display: flex; flex-wrap: wrap; gap: 6px }
+.lchip { border-radius: 99px; padding: 5px 12px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: .88rem; font-variant-numeric: tabular-nums }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; color: var(--muted) }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px }
+
+/* multi-select */
+.selbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 18; width: min(640px, calc(100% - 24px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,.18) }
+.selbar .selcount { font-weight: 500; margin-right: auto }
+.selbar .selbtns { display: flex; flex-wrap: wrap; gap: 6px }
+body.selecting .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) }
+body.selecting .wrap { padding-bottom: 96px }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: .9rem; z-index: 20; max-width: calc(100% - 32px) }
+.btn, .chipbtn, .mchip, .day, .appnav a { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chipbtn, .mchip { transition: transform .12s ease-out, background-color .15s, border-color .15s }
+  .btn:active:not(:disabled), .chipbtn:active, .mchip:active { transform: scale(.97) }
+  .toast { transition: opacity .2s ease-out, translate .2s ease-out; @starting-style { opacity: 0; translate: 0 8px } }
+}
+</style>
+
+<div class="wrap app-wrap">
+  <header>
+    <h1>Месечни разноски</h1>
+    <p class="sub">Разходи, събития и отпуск по месеци.</p>
+  </header>
+  <div id="root"><div class="state">Зареждане…</div></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script>
+/* collections: months/<YYYY-MM> {stated, note}; mexp/<id> {month, name, amount, note, paid, order};
+   mevents/<id> {month, date, time, title}; vacation/<YYYY-MM-DD> {date} is shared with Задачи → Отпуски */
+const KEYS = { months: 'months', mexp: 'exp', mevents: 'ev', vacation: 'leave' };
+const S = { months: {}, exp: {}, ev: {}, leave: {}, got: {}, noDb: false, readOnly: false,
+  month: '', open: new Set(), sel: null, armed: null, menu: false, newMonth: false, dirty: false };
+const LOCAL = { months: {}, mexp: {}, mevents: {}, vacation: {} };
+let db = null;
+try { const v = localStorage.getItem('zad-month'); if (/^\d{4}-\d{2}$/.test(v || '')) S.month = v; } catch (e) {}
+
+const root = document.getElementById('root');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = n => { n = Math.round((n || 0) * 100) / 100; return n.toLocaleString('bg-BG', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €'; };
+const parseNum = v => { const n = parseFloat(String(v ?? '').replace(/\s/g, '').replace('€', '').replace(',', '.')); return isFinite(n) ? n : null; };
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const pad = n => String(n).padStart(2, '0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => keyOf(new Date());
+const thisMonth = () => today().slice(0, 7);
+const dt = k => new Date(k + 'T12:00');
+const nextMonth = m => { let [y, mm] = m.split('-').map(Number); mm++; if (mm > 12) { mm = 1; y++; } return `${y}-${pad(mm)}`; };
+const WD = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const WDL = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+const ML = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
+const MS = ['ян', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+const cap = s => s.replace(/^./, c => c.toUpperCase());
+const mName = m => { const [y, mm] = m.split('-').map(Number); return cap(ML[mm - 1]) + (y !== new Date().getFullYear() ? ' ' + y : ''); };
+const mNameFull = m => { const [y, mm] = m.split('-').map(Number); return cap(ML[mm - 1]) + ' ' + y; };
+const amt = x => Number(x.amount) || 0;
+const byOrder = (a, b) => (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg');
+const allMonths = () => [...new Set([...Object.keys(S.months), ...Object.values(S.exp).map(x => x.month), ...Object.values(S.ev).map(x => x.month)].filter(Boolean))].sort();
+const rowsOf = m => Object.entries(S.exp).filter(([, x]) => x.month === m).sort(byOrder);
+const evsOf = m => Object.entries(S.ev).filter(([, x]) => x.month === m).sort((a, b) => (a[1].date || '').localeCompare(b[1].date || '') || (a[1].time || '').localeCompare(b[1].time || ''));
+const leaveOf = m => Object.values(S.leave).map(v => v.date).filter(d => d && d.startsWith(m)).sort();
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800); }
+function gcal(e) {
+  if (!e.date) return '';
+  let dates; const f = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  if (e.time) { const s = new Date(e.date + 'T' + e.time); dates = f(s) + '/' + f(new Date(s.getTime() + 3600e3)); }
+  else { const n = dt(e.date); n.setDate(n.getDate() + 1); dates = e.date.replace(/-/g, '') + '/' + keyOf(n).replace(/-/g, ''); }
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(e.title) + '&dates=' + dates;
+}
+
+/* ---------- writes (same approach as Задачи: keep new docs locally until saved, retry short failures) ---------- */
+const pend = {}, busy = {}, creating = {};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fatal = e => e && ['invalid_argument', 'not_granted', 'permission_denied', 'quota_exceeded', 'revoked'].includes(e.code);
+function onWriteError(e) {
+  if (e && (e.code === 'not_granted' || e.code === 'permission_denied')) { if (!S.readOnly) { S.readOnly = true; render(); } }
+  else toast('Промяната не се записа. Провери връзката и опитай пак.');
+}
+const current = (col, id) => LOCAL[col][id] || S[KEYS[col]][id];
+async function attempt(fn) { let last; for (let i = 0; i < 5; i++) { try { return await fn(); } catch (e) { last = e; if (fatal(e)) throw e; await sleep(500 * (i + 1) + Math.random() * 400); } } throw last; }
+async function save(col, id, patch, isNew) {
+  if (!db || S.readOnly) return;
+  const key = col + '/' + id;
+  pend[key] = Object.assign(pend[key] || {}, patch);
+  if (isNew) creating[key] = true;
+  if (busy[key]) return;
+  busy[key] = true;
+  while (pend[key]) {
+    const p = pend[key]; delete pend[key];
+    const ref = db.collection(col).doc(id);
+    try {
+      if (creating[key]) { await attempt(() => ref.set(Object.assign({}, current(col, id), p))); delete creating[key]; delete LOCAL[col][id]; }
+      else {
+        try { await attempt(() => ref.update(p)); }
+        catch (e) { if (e && e.code === 'not_found' && S[KEYS[col]][id]) await attempt(() => ref.set(Object.assign({}, S[KEYS[col]][id], p))); else throw e; }
+      }
+    } catch (e) {
+      if (creating[key]) { delete creating[key]; delete LOCAL[col][id]; delete S[KEYS[col]][id]; render(); }
+      onWriteError(e);
+    }
+  }
+  busy[key] = false;
+}
+function create(col, id, data) { LOCAL[col][id] = data; S[KEYS[col]][id] = data; save(col, id, {}, true); }
+async function remove(col, id) { delete LOCAL[col][id]; delete S[KEYS[col]][id]; if (!db || S.readOnly) return; try { await attempt(() => db.collection(col).doc(id).delete()); } catch (e) { onWriteError(e); } }
+const patcher = col => (id, p) => { const o = S[KEYS[col]][id]; if (!o) return; Object.assign(o, p); if (LOCAL[col][id]) Object.assign(LOCAL[col][id], p); save(col, id, p); };
+const setE = patcher('mexp'), setV = patcher('mevents');
+function setMonth(m, p) { if (S.months[m]) patcher('months')(m, p); else create('months', m, Object.assign({ stated: 0, note: '' }, p)); }
+
+/* ---------- rendering ---------- */
+const typing = () => { const a = document.activeElement; return a && root.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox'; };
+function schedule() { if (typing()) S.dirty = true; else render(); }
+root.addEventListener('focusout', () => setTimeout(() => { if (S.dirty && !typing()) { S.dirty = false; render(); } }, 0));
+const ready = () => Object.keys(KEYS).every(c => S.got[c]);
+
+function pickMonth(ms) {
+  if (S.month && ms.includes(S.month)) return S.month;
+  const t = thisMonth(); return ms.includes(t) ? t : (ms.find(m => m > t) || ms[ms.length - 1] || '');
+}
+function render() {
+  if (S.noDb) { root.innerHTML = `<div class="card state">Нямаш достъп до данните. Излез и влез отново.</div>`; return; }
+  if (!ready()) { root.innerHTML = `<div class="state">Зареждане…</div>`; return; }
+  const dis = S.readOnly ? ' disabled' : '', ms = allMonths();
+  S.month = pickMonth(ms);
+  let h = '';
+  if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
+  h += `<nav class="months" aria-label="Месеци">${ms.map(m => { const t = rowsOf(m).reduce((a, [, x]) => a + amt(x), 0);
+    return `<button class="mchip" data-act="month" data-v="${m}" aria-pressed="${m === S.month && !S.newMonth}"><b>${esc(mName(m))}</b><small>${money(t)}</small></button>`; }).join('')}
+    ${S.readOnly ? '' : `<button class="mchip add" data-act="newmonth" aria-pressed="${S.newMonth}"><b>+ Нов месец</b></button>`}</nav>`;
+  if (S.newMonth || !S.month) h += newMonthForm(ms, dis);
+  if (S.month && !S.newMonth) h += monthView(S.month, dis);
+  if (S.sel) { [...S.sel].forEach(x => { if (!S.exp[x] && !S.ev[x]) S.sel.delete(x); }); h += selBar(); }
+  document.body.classList.toggle('selecting', !!S.sel);
+  root.innerHTML = h;
+}
+function newMonthForm(ms, dis) {
+  if (S.readOnly) return `<div class="card state">Още няма месеци.</div>`;
+  const last = ms[ms.length - 1], def = last ? nextMonth(last) : nextMonth(thisMonth());
+  return `<form class="card" data-act="addmonth" style="display:grid;gap:12px">
+    <h2 style="font-size:1.25rem">Нов месец</h2>
+    <div class="row2"><label class="f">Месец<input type="month" id="nm-month" value="${def}" required></label>
+    <label class="f">Започни с<select id="nm-copy">${ms.slice().reverse().map(m => `<option value="${m}">редовете от ${esc(mNameFull(m).toLowerCase())}</option>`).join('')}<option value="">празен месец</option></select></label></div>
+    <p class="hint">При копие сумите остават същите и всички редове са неплатени. После промени каквото е различно.</p>
+    <div class="edit-foot"><button class="btn" type="button" data-act="cancelmonth">Отказ</button><button class="btn primary" type="submit">Създай месеца</button></div>
+  </form>`;
+}
+function monthView(m, dis) {
+  const rows = rowsOf(m), evs = evsOf(m), mo = S.months[m] || {};
+  const total = rows.reduce((a, [, x]) => a + amt(x), 0), paid = rows.filter(([, x]) => x.paid).reduce((a, [, x]) => a + amt(x), 0);
+  const stated = Number(mo.stated) || 0, diff = Math.round((total - stated) * 100) / 100;
+  let h = `<section class="card" style="display:grid;gap:12px" aria-label="Обобщение">
+    <div class="mtitle"><h2>${esc(mNameFull(m))}</h2>${S.readOnly ? '' : `<button class="iconbtn" data-act="menu" aria-label="Настройки на месеца" aria-expanded="${S.menu}">⋯</button>`}</div>`;
+  if (S.menu) { const armed = S.armed === 'mdel';
+    h += `<div class="menu">
+      <div class="row2"><label class="f">Твоето общо за месеца, €<input id="m-stated" data-month="${m}" data-f="stated" inputmode="decimal" value="${stated || ''}" placeholder="по желание"${dis}></label>
+      <label class="f">Бележка<input id="m-note" data-month="${m}" data-f="note" value="${esc(mo.note)}" placeholder="по желание"${dis}></label></div>
+      <div class="edit-foot"><button class="btn" data-act="menu">Готово</button><button class="btn danger${armed ? ' armed' : ''}" data-act="mdel"${dis}>${armed ? `Да, изтрий месеца и ${rows.length + evs.length} реда` : 'Изтрий месеца'}</button></div></div>`; }
+  h += `<div class="sum3"><div class="total"><span>Общо</span><b>${money(total)}</b></div><div class="paid"><span>Платено</span><b>${money(paid)}</b></div><div class="left"><span>Остава</span><b>${money(total - paid)}</b></div></div>`;
+  if (total) h += `<div class="bar" aria-hidden="true"><span style="width:${Math.min(100, paid / total * 100).toFixed(1)}%"></span></div>`;
+  if (mo.note) h += `<p class="hint">${esc(mo.note)}</p>`;
+  if (stated && Math.abs(diff) > 0.001) h += `<div class="warn">Записал си общо <b>${money(stated)}</b>, а редовете дават <b>${money(total)}</b>. Редовете са с <b>${money(Math.abs(diff))}</b> ${diff > 0 ? 'повече' : 'по-малко'}.</div>`;
+  else if (stated) h += `<div class="okline">Сборът съвпада с твоето общо ${money(stated)}.</div>`;
+  h += `</section>`;
+
+  // expenses
+  h += `<section class="sec"><div class="sec-head"><h2>Разходи</h2><span class="sec-meta">${rows.length} реда · платени ${rows.filter(([, x]) => x.paid).length}</span></div><div class="list">`;
+  h += rows.length ? rows.map(([id, x], i) => expHtml(id, x, i, rows.length, dis)).join('') : '<div class="empty">Още няма редове.</div>';
+  if (rows.length) h += `<div class="tfoot"><span>Общо</span><b>${money(total)}</b></div>`;
+  if (!S.readOnly && !S.sel) h += `<form class="add" data-act="addexp"><input id="ae-name" placeholder="Нов разход…" aria-label="Нов разход" autocomplete="off"><input class="amt-in" id="ae-amt" inputmode="decimal" placeholder="€" aria-label="Сума"><button class="btn" type="submit">Добави</button></form>`;
+  h += `</div></section>`;
+
+  // events
+  h += `<section class="sec"><div class="sec-head"><h2>Събития</h2><span class="sec-meta">${evs.length || ''}</span></div><div class="list">`;
+  h += evs.length ? evs.map(([id, e]) => evHtml(id, e, dis)).join('') : '<div class="empty">Няма събития за този месец.</div>';
+  if (!S.readOnly && !S.sel) { const [y, mm] = m.split('-').map(Number), lastDay = `${m}-${pad(new Date(y, mm, 0).getDate())}`;
+    h += `<form class="add" data-act="addev"><input id="av-title" placeholder="Ново събитие…" aria-label="Ново събитие" autocomplete="off"><input class="d-in" id="av-date" type="date" min="${m}-01" max="${lastDay}" aria-label="Дата" required><input class="t-in" id="av-time" type="time" aria-label="Час"><button class="btn" type="submit">Добави</button></form>`; }
+  h += `</div></section>`;
+
+  if (!S.readOnly) h += `<div class="toolsrow"><button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`;
+  h += leaveHtml(m, evs, dis);
+  return h;
+}
+function expHtml(id, x, i, n, dis) {
+  if (S.sel) { const on = S.sel.has(id);
+    return `<div class="item${on ? ' picked' : ''}"><div class="item-row">
+      <input type="checkbox" class="check pick" data-act="pick" data-id="${esc(id)}" ${on ? 'checked' : ''} aria-label="Избери: ${esc(x.name)}">
+      <button class="item-main" data-act="pick" data-id="${esc(id)}" aria-pressed="${on}"><span class="item-name">${esc(x.name)}</span>${x.note ? `<span class="item-note">${esc(x.note)}</span>` : ''}</button>
+      <span class="amt">${money(x.amount)}</span></div></div>`; }
+  const open = S.open.has(id);
+  let h = `<div class="item${x.paid ? ' is-done' : ''}"><div class="item-row">
+    <input type="checkbox" class="check" data-act="paid" data-id="${esc(id)}" ${x.paid ? 'checked' : ''} aria-label="Платено: ${esc(x.name)}"${dis}>
+    <button class="item-main" data-act="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="item-name">${esc(x.name)}</span>${x.note ? `<span class="item-note">${esc(x.note)}</span>` : ''}</button>
+    <span class="amt">${money(x.amount)}</span></div>`;
+  if (open) { const armed = S.armed === 'e:' + id;
+    h += `<div class="edit">
+      <div class="row2"><label class="f">Име<input id="e-name-${esc(id)}" data-eid="${esc(id)}" data-f="name" value="${esc(x.name)}"${dis}></label>
+      <label class="f">Сума, €<input id="e-amt-${esc(id)}" data-eid="${esc(id)}" data-f="amount" inputmode="decimal" value="${Number(x.amount) || ''}"${dis}></label></div>
+      <label class="f">Бележка<input id="e-note-${esc(id)}" data-eid="${esc(id)}" data-f="note" value="${esc(x.note)}" placeholder="напр. ваучери 100 €"${dis}></label>
+      <div class="edit-foot"><div class="grp"><button class="btn" data-act="toggle" data-id="${esc(id)}">Готово</button><button class="btn" data-act="move" data-id="${esc(id)}" data-d="-1"${i === 0 ? ' disabled' : ''}${dis} aria-label="По-горе">↑</button><button class="btn" data-act="move" data-id="${esc(id)}" data-d="1"${i === n - 1 ? ' disabled' : ''}${dis} aria-label="По-долу">↓</button></div>
+      <button class="btn danger${armed ? ' armed' : ''}" data-act="delexp" data-id="${esc(id)}"${dis}>${armed ? 'Да, изтрий' : 'Изтрий'}</button></div></div>`; }
+  return h + `</div>`;
+}
+function evHtml(id, e, dis) {
+  const d = e.date ? dt(e.date) : null, tk = today(), past = e.date && e.date < tk;
+  const tile = d ? `<span class="tile${e.date === tk ? ' today' : past ? ' past' : ''}"><i>${WD[d.getDay()]}</i><b>${d.getDate()}</b><i>${MS[d.getMonth()]}</i></span>` : '<span class="tile"><b>?</b></span>';
+  if (S.sel) { const on = S.sel.has(id);
+    return `<div class="item${on ? ' picked' : ''}"><div class="item-row">
+      <input type="checkbox" class="check pick" data-act="pick" data-id="${esc(id)}" ${on ? 'checked' : ''} aria-label="Избери: ${esc(e.title)}">
+      <button class="item-main" data-act="pick" data-id="${esc(id)}" aria-pressed="${on}"><span class="item-name">${esc(e.title)}</span>${d ? `<span class="item-note">${WDL[d.getDay()]}${e.time ? ', ' + esc(e.time) + ' ч.' : ''}</span>` : ''}</button>
+      ${tile}</div></div>`; }
+  const open = S.open.has(id);
+  let h = `<div class="item${past ? ' past' : ''}"><div class="item-row">${tile}
+    <button class="item-main" data-act="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="item-name">${esc(e.title)}</span>${d ? `<span class="item-note">${WDL[d.getDay()]}</span>` : ''}</button>
+    <span class="ev-time">${e.time ? esc(e.time) : ''}${e.date && !past ? `<a class="rem" href="${esc(gcal(e))}" target="_blank" rel="noopener">+ напомняне</a>` : ''}</span></div>`;
+  if (open) { const armed = S.armed === 'v:' + id;
+    h += `<div class="edit">
+      <div class="row3"><label class="f">Какво<input id="v-title-${esc(id)}" data-vid="${esc(id)}" data-f="title" value="${esc(e.title)}"${dis}></label>
+      <label class="f">Дата<input id="v-date-${esc(id)}" data-vid="${esc(id)}" data-f="date" type="date" value="${esc(e.date)}"${dis}></label>
+      <label class="f">Час<input id="v-time-${esc(id)}" data-vid="${esc(id)}" data-f="time" type="time" value="${esc(e.time)}"${dis}></label></div>
+      <div class="edit-foot"><button class="btn" data-act="toggle" data-id="${esc(id)}">Готово</button>
+      <button class="btn danger${armed ? ' armed' : ''}" data-act="delev" data-id="${esc(id)}"${dis}>${armed ? 'Да, изтрий' : 'Изтрий'}</button></div></div>`; }
+  return h + `</div>`;
+}
+function leaveHtml(m, evs, dis) {
+  const [y, mm] = m.split('-').map(Number), days = new Date(y, mm, 0).getDate(), first = (new Date(y, mm - 1, 1).getDay() + 6) % 7, tk = today();
+  const lv = leaveOf(m), evDays = new Set(evs.map(([, e]) => e.date));
+  let cells = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'].map(w => `<span class="wd">${w}</span>`).join('');
+  for (let i = 0; i < first; i++) cells += '<span class="day blank"></span>';
+  for (let d = 1; d <= days; d++) { const k = `${m}-${pad(d)}`, wd = (first + d - 1) % 7, on = !!S.leave[k];
+    cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}" data-act="vday" data-d="${k}" aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуск' : ''}"${dis}>${d}${evDays.has(k) ? '<span class="dot"></span>' : ''}</button>`; }
+  return `<section class="sec"><div class="sec-head"><h2>Отпуск</h2><span class="sec-meta">${lv.length ? lv.length + (lv.length === 1 ? ' ден' : ' дни') : ''}</span></div>
+    <div class="list cal">
+      ${lv.length ? `<div class="lchips">${lv.map(k => { const d = dt(k); return `<span class="lchip">${WD[d.getDay()]}, ${d.getDate()} ${MS[d.getMonth()]}</span>`; }).join('')}</div>` : '<p class="hint">Няма отпуск този месец.</p>'}
+      <div class="cgrid">${cells}</div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>отпуск</span><span><i style="background:var(--wait);border-radius:50%"></i>събитие</span></div>
+      <p class="hint">Докосни ден, за да сложиш или махнеш отпуск. Същите дни се виждат и в Задачи → Отпуски.</p>
+    </div></section>`;
+}
+function selBar() {
+  const n = S.sel.size, armed = S.armed === 'seldel';
+  return `<div class="selbar" role="region" aria-label="Избрани"><span class="selcount">${n ? `Избрани: ${n}` : 'Докосни редовете, които искаш'}</span>
+    <span class="selbtns"><button class="btn" data-act="selall">Избери всички</button>${n ? `<button class="btn" data-act="selnone">Махни избора</button>` : ''}
+    <button class="btn danger${armed ? ' armed' : ''}" data-act="seldel"${n ? '' : ' disabled'}>${armed ? `Да, изтрий ${n}` : 'Изтрий избраните'}</button></span></div>`;
+}
+
+/* ---------- events ---------- */
+const nextOrder = m => Math.max(-1, ...rowsOf(m).map(([, x]) => x.order ?? 0)) + 1;
+root.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || (b.tagName === 'INPUT' && b.dataset.act !== 'pick')) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  if (!['delexp', 'delev', 'mdel', 'seldel'].includes(act)) S.armed = null;
+  if (act === 'month') { S.month = b.dataset.v; S.newMonth = false; S.menu = false; S.open.clear(); S.sel = null; try { localStorage.setItem('zad-month', S.month); } catch (err) {} }
+  else if (act === 'newmonth') { S.newMonth = !S.newMonth; S.sel = null; S.menu = false; }
+  else if (act === 'cancelmonth') S.newMonth = false;
+  else if (act === 'menu') S.menu = !S.menu;
+  else if (act === 'toggle') S.open.has(id) ? S.open.delete(id) : S.open.add(id);
+  else if (act === 'selmode') { S.sel = S.sel ? null : new Set(); S.open.clear(); S.menu = false; }
+  else if (act === 'pick') { if (S.sel) S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); }
+  else if (act === 'selall') root.querySelectorAll('button[data-act="pick"]').forEach(x => S.sel.add(x.dataset.id));
+  else if (act === 'selnone') S.sel.clear();
+  else if (act === 'seldel') {
+    if (S.armed === 'seldel') { S.armed = null; let n = 0; [...S.sel].forEach(x => { if (S.exp[x]) { remove('mexp', x); n++; } else if (S.ev[x]) { remove('mevents', x); n++; } }); S.sel = null; toast('Изтрити: ' + n); }
+    else if (S.sel.size) S.armed = 'seldel';
+  }
+  else if (act === 'delexp' || act === 'delev') {
+    const k = (act === 'delexp' ? 'e:' : 'v:') + id, o = act === 'delexp' ? S.exp[id] : S.ev[id];
+    if (S.armed === k && o) { S.armed = null; S.open.delete(id); remove(act === 'delexp' ? 'mexp' : 'mevents', id); toast('Изтрито: ' + (o.name || o.title)); }
+    else S.armed = k;
+  }
+  else if (act === 'mdel') {
+    if (S.armed === 'mdel') { S.armed = null; S.menu = false; const m = S.month;
+      rowsOf(m).forEach(([x]) => remove('mexp', x)); evsOf(m).forEach(([x]) => remove('mevents', x)); if (S.months[m]) remove('months', m);
+      toast('Изтрит месец: ' + mNameFull(m)); S.month = ''; }
+    else S.armed = 'mdel';
+  }
+  else if (act === 'move') {
+    const arr = rowsOf(S.month), i = arr.findIndex(x => x[0] === id), j = i + Number(b.dataset.d);
+    if (j >= 0 && j < arr.length) { [arr[i], arr[j]] = [arr[j], arr[i]]; arr.forEach(([xid, x], n) => { if (x.order !== n) setE(xid, { order: n }); }); }
+  }
+  else if (act === 'vday') {
+    const d = b.dataset.d, l = dt(d), lbl = `${l.getDate()} ${ML[l.getMonth()]}`;
+    if (S.leave[d]) { remove('vacation', d); toast('Махнат отпуск: ' + lbl); }
+    else { create('vacation', d, { date: d, created: new Date().toISOString() }); toast('Отпуск: ' + lbl); }
+  }
+  render();
+});
+root.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.act === 'paid') { setE(t.dataset.id, { paid: t.checked }); render(); return; }
+  if (t.dataset.eid && S.exp[t.dataset.eid]) {
+    const id = t.dataset.eid, k = t.dataset.f; let v = t.value.trim();
+    if (k === 'amount') { v = parseNum(v); if (v === null) { t.value = Number(S.exp[id].amount) || ''; return; } }
+    if (k === 'name' && !v) { t.value = S.exp[id].name; return; }
+    setE(id, { [k]: v }); schedule(); return;
+  }
+  if (t.dataset.vid && S.ev[t.dataset.vid]) {
+    const id = t.dataset.vid, k = t.dataset.f, v = t.value.trim();
+    if ((k === 'title' || k === 'date') && !v) { t.value = S.ev[id][k]; return; }
+    const p = { [k]: v }; if (k === 'date') p.month = v.slice(0, 7);
+    setV(id, p); if (k === 'date' && p.month !== S.month) { S.month = p.month; render(); } else schedule(); return;
+  }
+  if (t.dataset.month) { const k = t.dataset.f; let v = t.value.trim(); if (k === 'stated') v = parseNum(v) ?? 0; setMonth(t.dataset.month, { [k]: v }); schedule(); }
+});
+root.addEventListener('submit', e => {
+  e.preventDefault(); if (S.readOnly) return;
+  const f = e.target, act = f.dataset.act, m = S.month;
+  if (act === 'addmonth') {
+    const nm = (document.getElementById('nm-month').value || '').slice(0, 7), src = document.getElementById('nm-copy').value;
+    if (!/^\d{4}-\d{2}$/.test(nm)) return;
+    if (allMonths().includes(nm)) { S.month = nm; S.newMonth = false; toast(mNameFull(nm) + ' вече го има.'); render(); return; }
+    create('months', nm, { stated: 0, note: '', created: new Date().toISOString() });
+    if (src) rowsOf(src).forEach(([, x], i) => create('mexp', uid('e'), { month: nm, name: x.name, amount: amt(x), note: x.note || '', paid: false, order: i }));
+    S.month = nm; S.newMonth = false; try { localStorage.setItem('zad-month', nm); } catch (err) {}
+    toast('Създаден: ' + mNameFull(nm)); render(); return;
+  }
+  if (act === 'addexp') {
+    const name = document.getElementById('ae-name').value.trim(), a = parseNum(document.getElementById('ae-amt').value);
+    if (!name) return; if (a === null) { toast('Въведи сума.'); document.getElementById('ae-amt').focus(); return; }
+    create('mexp', uid('e'), { month: m, name, amount: a, note: '', paid: false, order: nextOrder(m) });
+    render(); document.getElementById('ae-name').focus(); return;
+  }
+  if (act === 'addev') {
+    const title = document.getElementById('av-title').value.trim(), date = document.getElementById('av-date').value, time = document.getElementById('av-time').value;
+    if (!title || !date) return;
+    create('mevents', uid('v'), { month: date.slice(0, 7), date, time, title });
+    if (date.slice(0, 7) !== m) S.month = date.slice(0, 7);
+    render(); const a = document.getElementById('av-title'); if (a) a.focus();
+  }
+});
+setInterval(() => { if (ready() && !typing()) render(); }, 60000);
+
+/* ---------- data ---------- */
+(async () => {
+  db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+  if (!db) { S.noDb = true; render(); return; }
+  const fail = e => { if (e && e.code === 'revoked') { S.noDb = true; render(); } };
+  Object.keys(KEYS).forEach(col => db.collection(col).onSnapshot(s => {
+    const m = {}; s.docs.forEach(d => m[d.id] = Object.assign({}, d.data()));
+    Object.keys(LOCAL[col]).forEach(id => { if (!m[id]) m[id] = LOCAL[col][id]; });
+    S[KEYS[col]] = m; S.got[col] = 1; schedule();
+  }, fail));
+})();
+</script>
+
+<div class="wrap app-wrap" style="margin-top:28px">
+  <section class="card" style="display:grid;gap:10px">
+    <div class="acct"><span>Влязъл като <b id="acct-email"></b></span><button class="btn" type="button" onclick="zadSb.auth.signOut()">Изход</button></div>
+  </section>
+</div>

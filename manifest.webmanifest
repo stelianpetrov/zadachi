@@ -14,6 +14,7 @@
   ],
   "shortcuts": [
     { "name": "Задачи", "url": "./index.html" },
-    { "name": "Покупки за бебка", "url": "./bebe.html" }
+    { "name": "Покупки за бебка", "url": "./bebe.html" },
+    { "name": "Месечни разноски", "url": "./razhodi.html" }
   ]
 }
