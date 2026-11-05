@@ -175,7 +175,7 @@ const paid = it => (it.bought || it.ordered) && !it.gift ? (Number(it.price) || 
 const planned = it => !it.bought && !it.ordered && !it.gift ? (Number(it.estimate) || 0) : 0;
 const catsSorted = () => Object.entries(S.cats).sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg'));
 const itemsOf = cid => Object.entries(S.items).filter(([, it]) => it.cat === cid)
-  .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg'));
+  .sort((a, b) => (!!a[1].bought - !!b[1].bought) || (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg'));
 const stats = list => {
   const r = { n: 0, b: 0, o: 0, t: 0, spent: 0, planned: 0, sb: 0, so: 0, gifts: 0 };
   list.forEach(it => { r.n++; const s = status(it); if (s === 'bought') r.b++; else if (s === 'ordered') r.o++; else r.t++; r.spent += paid(it); r.planned += planned(it);
