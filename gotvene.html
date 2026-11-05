@@ -110,6 +110,14 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; col
 /* days */
 .day-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px 10px; border-bottom: 1px solid var(--line) }
 .day-h h3 { font-size: 1.12rem }
+.day-t { display: flex; align-items: center; gap: 12px; cursor: pointer; min-width: 0 }
+.wk-h { width: 100%; border: 0; background: none; text-align: left; padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center }
+.wk-h h2 { font-size: 1.2rem }
+.wk-h .chev { color: var(--muted); font-size: 1.1rem; transition: transform .15s }
+.wk-h[aria-expanded="true"] .chev { transform: rotate(180deg) }
+.wk-h .item-note { grid-column: 1 / -1 }
+.wk-sum { display: grid; gap: 10px; padding: 0 14px 14px }
+.wk.past { opacity: .72 }
 .day-h .cook { font-size: .78rem; font-weight: 600; border-radius: 99px; padding: 2px 10px; background: var(--accent-soft); color: var(--accent) }
 .list.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) }
 .list.past { opacity: .72 }
@@ -162,7 +170,7 @@ body.selecting .wrap { padding-bottom: 96px }
    gshop/<id> {week, key, done} for ticked list items, or {week, name, extra: true, done} for added ones */
 const KEYS = { recipes: 'rec', meals: 'meals', gshop: 'shop' };
 const S = { rec: {}, meals: {}, shop: {}, got: {}, noDb: false, readOnly: false,
-  tab: 'plan', week: '', open: new Set(), sel: null, armed: null, dirty: false, pick: null, pq: '', rq: '', rcat: '', rflag: '' };
+  tab: 'plan', week: '', open: new Set(), sel: null, armed: null, dirty: false, pick: null, shopOpen: null, pq: '', rq: '', rcat: '', rflag: '' };
 const LOCAL = { recipes: {}, meals: {}, gshop: {} };
 let db = null;
 try { const v = localStorage.getItem('zad-cook-tab'); if (['plan', 'shop', 'rec'].includes(v)) S.tab = v; } catch (e) {}
@@ -324,13 +332,14 @@ function render() {
   if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
   h += `<div class="tabs" role="group" aria-label="Изглед">${[['plan', 'План'], ['shop', 'Пазаруване'], ['rec', 'Рецептурник']].map(([k, l]) => `<button data-act="tab" data-v="${k}" aria-pressed="${S.tab === k}">${l}</button>`).join('')}</div>`;
   if (S.tab === 'rec') h += recView(dis);
+  else if (S.tab === 'shop') h += shopAll(dis);
   else {
     const ws = allWeeks(); S.week = pickWeek(ws);
     h += `<nav class="weeks" aria-label="Седмици">${ws.map(w => { const n = mealsOfWeek(w).filter(([, m]) => m.kind === 'cook').length;
       return `<button class="wchip" data-act="week" data-v="${w}" aria-pressed="${w === S.week}"><b>${esc(weekLabel(w))}</b><small>${w === weekOf(today()) ? 'тази седмица' : n + ' ястия'}</small></button>`; }).join('')}
       ${S.readOnly ? '' : `<button class="wchip add" data-act="newweek"><b>+ Нова седмица</b><small>попълва се сама</small></button>`}</nav>`;
     if (!S.week) h += `<div class="card state">Още няма план. Натисни „Нова седмица“.</div>`;
-    else h += S.tab === 'plan' ? planView(S.week, dis) : shopView(S.week, dis);
+    else h += planView(S.week, dis);
   }
   if (S.sel) { [...S.sel].forEach(x => { if (!S.meals[x] && !S.rec[x]) S.sel.delete(x); }); h += selBar(); }
   document.body.classList.toggle('selecting', !!S.sel);
@@ -347,7 +356,7 @@ function planView(w, dis) {
   days.forEach(d => {
     const dm = ms.filter(([, m]) => m.date === d), cooks = dm.some(([, m]) => m.kind === 'cook');
     h += `<section class="list${d === tk ? ' today' : d < tk ? ' past' : ''}" aria-label="${esc(dayName(d))}">
-      <div class="day-h"><h3>${esc(dayName(d))}</h3>${cooks ? '<span class="cook">готвиш</span>' : d === tk ? '<span class="tag">днес</span>' : ''}</div>`;
+      <div class="day-h"><label class="day-t">${S.readOnly ? '' : `<input type="checkbox" class="check pick" data-act="pickday" data-d="${d}" ${S.sel && dm.every(([id]) => S.sel.has(id)) ? 'checked' : ''} aria-label="Избери целия ден: ${esc(dayName(d))}">`}<h3>${esc(dayName(d))}</h3></label>${cooks ? '<span class="cook">готвиш</span>' : d === tk ? '<span class="tag">днес</span>' : ''}</div>`;
     KINDS.forEach(([k, l]) => { const rows = dm.filter(([, m]) => m.kind === k); if (!rows.length) return;
       h += `<div class="grp-h">${l}</div>` + rows.map(([id, m]) => mealHtml(id, m, w, dis)).join(''); });
     h += `</section>`;
@@ -358,7 +367,7 @@ function planView(w, dis) {
     h += `<form class="list add" data-act="addmeal" style="border-top:1px solid var(--line)"><select class="day-in" id="am-day" aria-label="Ден">${opts}</select><select id="am-rec" aria-label="Ястие"><option value="">Добави ястие…</option>${recs}</select><button class="btn" type="submit">Добави</button></form>`;
   }
   if (!S.readOnly) h += `<div class="toolsrow"><button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`;
-  h += `<p class="hint">Докосни ястие, за да го смениш, преместиш или махнеш. Отметката значи „сготвено“. Ястията с „за проверка“ са тези с въпросителни в твоя рецептурник.</p>`;
+  h += `<p class="hint">Докосни ястие, за да го смениш, преместиш или махнеш. Отметката до ястието значи „сготвено“, а тази до датата избира целия ден, за да го изтриеш. Ястията с „за проверка“ са тези с въпросителни в твоя рецептурник.</p>`;
   return h;
 }
 function mealHtml(id, m, w, dis) {
@@ -395,26 +404,33 @@ function pickerHtml(id, m) {
     <div class="opts">${list.length ? list.map(([rid, r]) => `<button class="opt" data-act="swap" data-id="${esc(id)}" data-r="${esc(rid)}"><span>${esc(r.name)}${r.isNew ? ' · ново' : ''}</span><small>${lu[rid] ? 'последно ' + dt(lu[rid]).getDate() + ' ' + MS[dt(lu[rid]).getMonth()] : 'не е в плана'}</small></button>`).join('') : '<div class="empty">Нищо не намерих.</div>'}</div></div>`;
 }
 
-function shopView(w, dis) {
-  const items = shopList(w), buy = items.filter(i => i.g !== 'home'), done = buy.filter(i => i.done).length;
-  const dishes = mealsOfWeek(w).filter(([, m]) => !m.noShop && S.rec[m.recipe]).length;
-  let h = `<section class="card" style="display:grid;gap:12px" aria-label="Обобщение">
-    <div class="sec-head"><h2>Пазаруване за ${esc(weekLabel(w))}</h2><span class="sec-meta">за ${dishes} ястия</span></div>
-    <div class="sum3"><div><span>Продукти</span><b>${buy.length}</b></div><div class="done"><span>Купени</span><b>${done}</b></div><div class="left"><span>Остават</span><b>${buy.length - done}</b></div></div>
-    ${buy.length ? `<div class="bar" aria-hidden="true"><span style="width:${(done / buy.length * 100).toFixed(1)}%"></span></div>` : ''}
-    <p class="hint">Количествата са сборът от рецептите за седмицата, за двама. Пазарувай в събота или неделя сутрин за двете готвения.</p></section>`;
-  h += `<section class="list">`;
+function shopAll(dis) {
+  const ws = allWeeks(), tw = weekOf(today());
+  if (!ws.length) return `<div class="card state">Още няма план. Добави седмица в „План“.</div>`;
+  if (!S.shopOpen) S.shopOpen = new Set([pickWeek(ws)]);
+  let h = `<p class="hint">Всяка седмица има свой списък: сборът от рецептите за неделя и сряда, за двама. Пазарувай в събота или неделя сутрин. Докосни седмица, за да я отвориш.</p>`;
+  ws.forEach(w => h += shopWeek(w, w === tw, w < tw, dis));
+  return h;
+}
+function shopWeek(w, cur, past, dis) {
+  const items = shopList(w), buy = items.filter(i => i.g !== 'home'), done = buy.filter(i => i.done).length, open = S.shopOpen.has(w);
+  const cooks = mealsOfWeek(w).filter(([, m]) => m.kind === 'cook' && S.rec[m.recipe] && S.rec[m.recipe].cat === 'main').map(([, m]) => S.rec[m.recipe].name);
+  let h = `<section class="list wk${past ? ' past' : ''}" aria-label="Пазаруване за ${esc(weekLabel(w))}">
+    <button class="wk-h" data-act="shopweek" data-v="${w}" aria-expanded="${open}"><h2>${esc(weekLabel(w))}${cur ? ' · тази седмица' : ''}</h2><span class="chev" aria-hidden="true">⌄</span>
+    <span class="item-note">${buy.length ? `купени ${done} от ${buy.length} продукта` : 'няма продукти'}${cooks.length ? ' · готвиш ' + esc(cooks.join(', ')) : ''}</span></button>`;
+  if (!open) return h + `</section>`;
+  if (buy.length) h += `<div class="wk-sum"><div class="bar" aria-hidden="true"><span style="width:${(done / buy.length * 100).toFixed(1)}%"></span></div></div>`;
   let g = '';
   items.forEach(i => { if (i.g !== g) { g = i.g; h += `<div class="grp-h">${esc(GL[g])}</div>`; }
     const lbl = i.extra || i.g === 'home' ? '' : i.for.join(', ');
     h += `<div class="item${i.done ? ' is-done' : ''}"><div class="item-row">
-      <input type="checkbox" class="check" data-act="buy" data-k="${esc(i.key)}" data-x="${i.extra ? 1 : ''}" ${i.done ? 'checked' : ''} aria-label="Купено: ${esc(i.name)}"${dis}>
+      <input type="checkbox" class="check" data-act="buy" data-w="${w}" data-k="${esc(i.key)}" data-x="${i.extra ? 1 : ''}" ${i.done ? 'checked' : ''} aria-label="Купено: ${esc(i.name)}"${dis}>
       <div class="item-main"><span class="item-name">${esc(i.name)}</span>${lbl ? `<span class="item-note">${esc(lbl)}</span>` : ''}</div>
       ${i.extra && !S.readOnly ? `<button class="xbtn" data-act="delx" data-id="${esc(i.id)}" aria-label="Махни ${esc(i.name)}">×</button>` : `<span class="qty">${esc(i.qty)}</span>`}</div></div>`; });
   if (!items.length) h += `<div class="empty">Няма ястия с продукти тази седмица.</div>`;
-  if (!S.readOnly) h += `<form class="add" data-act="addx"><input id="ax-name" placeholder="Още нещо за купуване…" aria-label="Още нещо за купуване" autocomplete="off"><button class="btn" type="submit">Добави</button></form>`;
-  h += `</section><div class="toolsrow"><button class="chipbtn" data-act="copy">Копирай списъка</button>${!S.readOnly && items.some(i => i.done) ? `<button class="chipbtn" data-act="unbuy">Махни отметките</button>` : ''}</div>`;
-  return h;
+  if (!S.readOnly) h += `<form class="add" data-act="addx" data-w="${w}"><input id="ax-name-${w}" placeholder="Още нещо за купуване…" aria-label="Още нещо за купуване" autocomplete="off"><button class="btn" type="submit">Добави</button></form>`;
+  h += `<div class="add" style="justify-content:flex-end"><button class="chipbtn" data-act="copy" data-w="${w}">Копирай списъка</button>${!S.readOnly && items.some(i => i.done) ? `<button class="chipbtn" data-act="unbuy" data-w="${w}">Махни отметките</button>` : ''}</div>`;
+  return h + `</section>`;
 }
 
 function recView(dis) {
@@ -460,11 +476,18 @@ function recHtml(id, r, used, dis) {
       <button class="btn danger${armed ? ' armed' : ''}" data-act="delrec" data-id="${esc(id)}"${dis}>${armed ? 'Да, изтрий' : 'Изтрий'}</button></div></div>`; }
   return h + `</div>`;
 }
+// when the selection is exactly one or more whole days, name them
+function dayText() {
+  if (S.tab !== 'plan') return '';
+  const days = [...new Set([...S.sel].map(x => S.meals[x] && S.meals[x].date).filter(Boolean))];
+  if (!days.every(d => Object.entries(S.meals).filter(([, m]) => m.date === d).every(([x]) => S.sel.has(x)))) return '';
+  return days.length === 1 ? `Цял ден: ${dayName(days[0]).toLowerCase()} (${S.sel.size})` : `Цели дни: ${days.length} (${S.sel.size} ястия)`;
+}
 function selBar() {
   const n = S.sel.size, armed = S.armed === 'seldel', rec = S.tab === 'rec';
-  return `<div class="selbar" role="region" aria-label="Избрани"><span class="selcount">${n ? `Избрани: ${n}` : rec ? 'Докосни ястията, които искаш' : 'Докосни ястията от плана'}</span>
+  return `<div class="selbar" role="region" aria-label="Избрани"><span class="selcount">${n && dayText() ? dayText() : n ? `Избрани: ${n}` : rec ? 'Докосни ястията, които искаш' : 'Докосни ястията от плана'}</span>
     <span class="selbtns"><button class="btn" data-act="selall">Избери всички</button>${n ? `<button class="btn" data-act="selnone">Махни избора</button>` : ''}
-    <button class="btn danger${armed ? ' armed' : ''}" data-act="seldel"${n ? '' : ' disabled'}>${armed ? `Да, ${rec ? 'изтрий' : 'махни'} ${n}` : rec ? 'Изтрий избраните' : 'Махни избраните'}</button></span></div>`;
+    <button class="btn danger${armed ? ' armed' : ''}" data-act="seldel"${n ? '' : ' disabled'}>${armed ? `Да, изтрий ${n}` : 'Изтрий избраните'}</button></span></div>`;
 }
 
 /* ---------- events ---------- */
@@ -474,7 +497,7 @@ function shopText(w) {
   return t;
 }
 root.addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || ((b.tagName === 'INPUT' || b.tagName === 'SELECT') && b.dataset.act !== 'pick')) return;
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || ((b.tagName === 'INPUT' || b.tagName === 'SELECT') && !['pick', 'pickday'].includes(b.dataset.act))) return;
   const act = b.dataset.act, id = b.dataset.id;
   if (!['delmeal', 'delrec', 'seldel'].includes(act)) S.armed = null;
   if (act === 'tab') { S.tab = b.dataset.v; S.sel = null; S.open.clear(); S.pick = null; try { localStorage.setItem('zad-cook-tab', S.tab); } catch (err) {} }
@@ -491,6 +514,11 @@ root.addEventListener('click', e => {
   else if (act === 'delmeal') { const m = S.meals[id];
     if (S.armed === 'm:' + id && m) { S.armed = null; S.open.delete(id); remove('meals', id); toast('Махнато: ' + ((S.rec[m.recipe] || {}).name || 'ястие')); } else S.armed = 'm:' + id; }
   else if (act === 'selmode') { S.sel = S.sel ? null : new Set(); S.open.clear(); S.pick = null; }
+  else if (act === 'pickday') { const ids = mealsOfWeek(weekOf(b.dataset.d)).filter(([, m]) => m.date === b.dataset.d).map(([x]) => x);
+    if (!S.sel) { S.sel = new Set(); S.open.clear(); S.pick = null; }
+    if (ids.every(x => S.sel.has(x))) ids.forEach(x => S.sel.delete(x)); else ids.forEach(x => S.sel.add(x));
+    if (!S.sel.size) S.sel = null; }
+  else if (act === 'shopweek') { const w = b.dataset.v; S.shopOpen.has(w) ? S.shopOpen.delete(w) : S.shopOpen.add(w); }
   else if (act === 'pick') { if (S.sel) S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); }
   else if (act === 'selall') root.querySelectorAll('button[data-act="pick"]').forEach(x => S.sel.add(x.dataset.id));
   else if (act === 'selnone') S.sel.clear();
@@ -505,8 +533,8 @@ root.addEventListener('click', e => {
   else if (act === 'toplan') { const r = S.rec[id], d = document.getElementById('rp-day-' + id).value;
     create('meals', uid('g'), { date: d, kind: kindOf(r.cat), recipe: id, note: '', done: false, order: 99, noShop: false }); S.week = weekOf(d); toast(`${r.name}: ${dayName(d).toLowerCase()}`); }
   else if (act === 'delx') { const x = S.shop[id]; if (x) { remove('gshop', id); toast('Махнато: ' + x.name); } }
-  else if (act === 'unbuy') { Object.entries(S.shop).forEach(([sid, x]) => { if (x.week !== S.week) return; if (x.extra) { if (x.done) patcher('gshop')(sid, { done: false }); } else remove('gshop', sid); }); toast('Отметките са махнати.'); }
-  else if (act === 'copy') { const t = shopText(S.week);
+  else if (act === 'unbuy') { Object.entries(S.shop).forEach(([sid, x]) => { if (x.week !== b.dataset.w) return; if (x.extra) { if (x.done) patcher('gshop')(sid, { done: false }); } else remove('gshop', sid); }); toast('Отметките са махнати.'); }
+  else if (act === 'copy') { const t = shopText(b.dataset.w);
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Списъкът е копиран. Постави го в съобщение.'), () => toast('Не успях да копирам.')); return; }
   render();
 });
@@ -521,7 +549,7 @@ root.addEventListener('change', e => {
   if (t.dataset.act === 'buy') {
     const k = t.dataset.k;
     if (t.dataset.x) patcher('gshop')(k, { done: t.checked });
-    else if (t.checked) create('gshop', k, { week: S.week, key: k, done: true }); else remove('gshop', k);
+    else if (t.checked) create('gshop', k, { week: t.dataset.w, key: k, done: true }); else remove('gshop', k);
     render(); return;
   }
   if (t.dataset.mid && S.meals[t.dataset.mid]) {
@@ -547,9 +575,9 @@ root.addEventListener('submit', e => {
     toast(`${r.name}: ${dayName(d).toLowerCase()}`); render(); return;
   }
   if (act === 'addx') {
-    const name = document.getElementById('ax-name').value.trim(); if (!name) return;
-    create('gshop', uid('x'), { week: S.week, name, extra: true, done: false });
-    render(); document.getElementById('ax-name').focus(); return;
+    const w = f.dataset.w, name = document.getElementById('ax-name-' + w).value.trim(); if (!name) return;
+    create('gshop', uid('x'), { week: w, name, extra: true, done: false });
+    render(); document.getElementById('ax-name-' + w).focus(); return;
   }
   if (act === 'addrec') {
     const name = document.getElementById('ar-name').value.trim(), cat = document.getElementById('ar-cat').value; if (!name) return;
