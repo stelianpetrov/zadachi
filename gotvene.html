@@ -235,7 +235,7 @@ const GL = Object.fromEntries(GROUPS.map(([k, l]) => [k, l])); GL.other = 'Др�
 const GORDER = ['veg', 'meat', 'dairy', 'dry', 'bread', 'frozen', 'cans', 'sweet', 'other', 'extra', 'home'];
 
 const mealsOfWeek = w => Object.entries(S.meals).filter(([, m]) => m.date && weekOf(m.date) === w)
-  .sort((a, b) => a[1].date.localeCompare(b[1].date) || KINDS.findIndex(k => k[0] === a[1].kind) - KINDS.findIndex(k => k[0] === b[1].kind) || (a[1].order ?? 0) - (b[1].order ?? 0));
+  .sort((a, b) => a[1].date.localeCompare(b[1].date) || KINDS.findIndex(k => k[0] === a[1].kind) - KINDS.findIndex(k => k[0] === b[1].kind) || (!!a[1].done - !!b[1].done) || (a[1].order ?? 0) - (b[1].order ?? 0));
 function shopList(w) {
   const map = {};
   mealsOfWeek(w).forEach(([, m]) => { const r = S.rec[m.recipe]; if (!r || m.noShop) return;
@@ -247,7 +247,7 @@ function shopList(w) {
   const items = Object.values(map);
   Object.entries(S.shop).forEach(([id, x]) => { if (x.extra && x.week === w) items.push({ key: id, id, name: x.name, qty: '', g: 'extra', for: [], extra: true }); });
   items.forEach(it => it.done = it.extra ? !!S.shop[it.id].done : !!(S.shop[it.key] && S.shop[it.key].done));
-  return items.sort((a, b) => GORDER.indexOf(a.g) - GORDER.indexOf(b.g) || a.name.localeCompare(b.name, 'bg'));
+  return items.sort((a, b) => GORDER.indexOf(a.g) - GORDER.indexOf(b.g) || (a.done - b.done) || a.name.localeCompare(b.name, 'bg'));
 }
 
 /* ---------- writes (same approach as the other pages: keep new docs locally until saved, retry short failures) ---------- */

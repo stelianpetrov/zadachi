@@ -204,6 +204,8 @@ const amt = x => Number(x.amount) || 0;
 const byOrder = (a, b) => (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg');
 const allMonths = () => [...new Set([...Object.keys(S.months), ...Object.values(S.exp).map(x => x.month), ...Object.values(S.ev).map(x => x.month)].filter(Boolean))].sort();
 const rowsOf = m => Object.entries(S.exp).filter(([, x]) => x.month === m).sort(byOrder);
+// display order: paid rows sink to the bottom, keeping their relative order
+const viewRows = m => rowsOf(m).sort((a, b) => !!a[1].paid - !!b[1].paid);
 const evsOf = m => Object.entries(S.ev).filter(([, x]) => x.month === m).sort((a, b) => (a[1].date || '').localeCompare(b[1].date || '') || (a[1].time || '').localeCompare(b[1].time || ''));
 const leaveOf = m => Object.values(S.leave).map(v => v.date).filter(d => d && d.startsWith(m)).sort();
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800); }
@@ -292,7 +294,7 @@ function newMonthForm(ms, dis) {
   </form>`;
 }
 function monthView(m, dis) {
-  const rows = rowsOf(m), evs = evsOf(m), mo = S.months[m] || {};
+  const rows = viewRows(m), evs = evsOf(m), mo = S.months[m] || {};
   const total = rows.reduce((a, [, x]) => a + amt(x), 0), paid = rows.filter(([, x]) => x.paid).reduce((a, [, x]) => a + amt(x), 0);
   const stated = Number(mo.stated) || 0, diff = Math.round((total - stated) * 100) / 100;
   let h = `<section class="card" style="display:grid;gap:12px" aria-label="Обобщение">
@@ -427,7 +429,7 @@ root.addEventListener('click', e => {
     else S.armed = 'mdel';
   }
   else if (act === 'move') {
-    const arr = rowsOf(S.month), i = arr.findIndex(x => x[0] === id), j = i + Number(b.dataset.d);
+    const arr = viewRows(S.month), i = arr.findIndex(x => x[0] === id), j = i + Number(b.dataset.d);
     if (j >= 0 && j < arr.length) { [arr[i], arr[j]] = [arr[j], arr[i]]; arr.forEach(([xid, x], n) => { if (x.order !== n) setE(xid, { order: n }); }); }
   }
   else if (act === 'vday') {
