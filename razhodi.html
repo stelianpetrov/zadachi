@@ -112,7 +112,9 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; col
 .add input { flex: 1 1 140px; min-width: 0; border: 1px dashed var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px }
 .add input.amt-in { flex: 0 0 84px }
 .add input.d-in { flex: 0 1 150px } .add input.t-in { flex: 0 1 104px }
-.toolsrow { display: flex; justify-content: flex-end }
+.toolsrow { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px }
+.chipbtn.danger { color: var(--danger) }
+.chipbtn.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--surface) }
 
 /* events */
 .tile { width: 54px; border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 4px 0 5px; line-height: 1.05; font-variant-numeric: tabular-nums }
@@ -319,7 +321,8 @@ function monthView(m, dis) {
     h += `<form class="add" data-act="addev"><input id="av-title" placeholder="Ново събитие…" aria-label="Ново събитие" autocomplete="off"><input class="d-in" id="av-date" type="date" min="${m}-01" max="${lastDay}" aria-label="Дата" required><input class="t-in" id="av-time" type="time" aria-label="Час"><button class="btn" type="submit">Добави</button></form>`; }
   h += `</div></section>`;
 
-  if (!S.readOnly) h += `<div class="toolsrow"><button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`;
+  if (!S.readOnly) { const np = rows.filter(([, x]) => x.paid).length, armed = S.armed === 'delpaid';
+    h += `<div class="toolsrow">${np && !S.sel ? `<button class="chipbtn danger${armed ? ' armed' : ''}" data-act="delpaid">${armed ? `Да, изтрий ${np} платени (${money(paid)})` : `Изтрий платените (${np})`}</button>` : ''}<button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`; }
   h += leaveHtml(m, evs, dis);
   return h;
 }
@@ -391,7 +394,7 @@ const nextOrder = m => Math.max(-1, ...rowsOf(m).map(([, x]) => x.order ?? 0)) +
 root.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || (b.tagName === 'INPUT' && b.dataset.act !== 'pick')) return;
   const act = b.dataset.act, id = b.dataset.id;
-  if (!['delexp', 'delev', 'mdel', 'seldel'].includes(act)) S.armed = null;
+  if (!['delexp', 'delev', 'mdel', 'seldel', 'delpaid'].includes(act)) S.armed = null;
   if (act === 'month') { S.month = b.dataset.v; S.newMonth = false; S.menu = false; S.open.clear(); S.sel = null; try { localStorage.setItem('zad-month', S.month); } catch (err) {} }
   else if (act === 'newmonth') { S.newMonth = !S.newMonth; S.sel = null; S.menu = false; }
   else if (act === 'cancelmonth') S.newMonth = false;
@@ -409,6 +412,10 @@ root.addEventListener('click', e => {
     const k = (act === 'delexp' ? 'e:' : 'v:') + id, o = act === 'delexp' ? S.exp[id] : S.ev[id];
     if (S.armed === k && o) { S.armed = null; S.open.delete(id); remove(act === 'delexp' ? 'mexp' : 'mevents', id); toast('Изтрито: ' + (o.name || o.title)); }
     else S.armed = k;
+  }
+  else if (act === 'delpaid') {
+    if (S.armed === 'delpaid') { S.armed = null; const del = rowsOf(S.month).filter(([, x]) => x.paid); del.forEach(([x]) => { S.open.delete(x); remove('mexp', x); }); toast('Изтрити платени: ' + del.length); }
+    else S.armed = 'delpaid';
   }
   else if (act === 'mdel') {
     if (S.armed === 'mdel') { S.armed = null; S.menu = false; const m = S.month;
