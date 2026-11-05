@@ -253,7 +253,8 @@ body.dragmode { touch-action: none; overscroll-behavior: contain }
 .day.we { color: var(--muted) }
 .day.blank { visibility: hidden }
 .day:not(.blank):not(:disabled):hover { border-color: var(--line) }
-.day.today { border-color: var(--accent); font-weight: 700 }
+.day.today { border-color: transparent; box-shadow: inset 0 0 0 2px var(--danger); font-weight: 700 }
+.day .tdy { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: var(--danger); color: var(--surface); font-size: .58rem; font-weight: 700; line-height: 1; padding: 2px 5px; border-radius: 99px; letter-spacing: .02em; pointer-events: none; z-index: 1 }
 .day.leave { background: var(--accent); color: var(--on-accent); font-weight: 700 }
 .day.leave.past { opacity: .8 }
 .day .dot { position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--wait) }
@@ -644,16 +645,16 @@ function leaveView(dis) {
   Object.keys(byM).sort().forEach(k => { const [yy, mm] = k.split('-').map(Number);
     h += `<div class="lmonth"><b>${ML[mm - 1]}</b><span class="lchips">${byM[k].map(d => `<span class="lchip${d < tk ? ' past' : ''}">${WD[dt(d).getDay()]} ${dt(d).getDate()}</span>`).join('')}</span></div>`; });
   if (!dates.length) h += `<p class="hint">Още няма отпуски. Докосни ден в календара отдолу.</p>`;
-  h += `</section><div class="legend"><span><i style="background:var(--accent)"></i>отпуска</span><span><i style="background:rgba(37,99,235,.35);border:1px solid rgba(37,99,235,.7)"></i>официален празник</span><span><i style="background:rgba(37,99,235,.1);border:1px dashed rgba(37,99,235,.7)"></i>почивен ден</span><span><i style="border:2px solid var(--accent)"></i>днес</span><span><i style="background:var(--wait);border-radius:50%"></i>има задача</span>${S.readOnly ? '' : '<span>Докосни ден, за да го добавиш или махнеш.</span>'}</div><div class="cals">`;
+  h += `</section><div class="legend"><span><i style="background:var(--accent)"></i>отпуска</span><span><i style="background:rgba(37,99,235,.35);border:1px solid rgba(37,99,235,.7)"></i>официален празник</span><span><i style="background:rgba(37,99,235,.1);border:1px dashed rgba(37,99,235,.7)"></i>почивен ден</span><span><i style="box-shadow:inset 0 0 0 2px var(--danger)"></i>днес</span><span><i style="background:var(--wait);border-radius:50%"></i>има задача</span>${S.readOnly ? '' : '<span>Докосни ден, за да го добавиш или махнеш.</span>'}</div><div class="cals">`;
   months.forEach(([yy, mm]) => {
     const first = (new Date(yy, mm - 1, 1).getDay() + 6) % 7, nd = new Date(yy, mm, 0).getDate();
     const cnt = (byM[`${yy}-${pad(mm)}`] || []).length;
     let cells = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'].map(x => `<div class="wd">${x}</div>`).join('') + '<span class="day blank"></span>'.repeat(first);
     for (let d = 1; d <= nd; d++) {
       const k = `${yy}-${pad(mm)}-${pad(d)}`, wd = (first + d - 1) % 7, hol = HOL[k];
-      if (hol) { cells += `<button class="day hol${hol[1] ? '' : ' off'}${k === tk ? ' today' : ''}" data-act="hday" data-n="${esc(hol[0])}" data-tip="1" data-d="${k}" aria-label="${d} ${ML[mm - 1]}, ${esc(hol[0])}">${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}</button>`; continue; }
+      if (hol) { cells += `<button class="day hol${hol[1] ? '' : ' off'}${k === tk ? ' today' : ''}" data-act="hday" data-n="${esc(hol[0])}" data-tip="1" data-d="${k}" aria-label="${d} ${ML[mm - 1]}, ${esc(hol[0])}">${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`; continue; }
       const on = !!S.leave[k];
-      cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}${on && k < tk ? ' past' : ''}" data-act="vday" data-d="${k}"${taskDays.has(k) || on ? ' data-tip="1"' : ''} aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуска' : ''}"${dis}>${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}</button>`;
+      cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}${on && k < tk ? ' past' : ''}" data-act="vday" data-d="${k}"${taskDays.has(k) || on ? ' data-tip="1"' : ''} aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуска' : ''}"${dis}>${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`;
     }
     h += `<section class="cal"><h2>${ML[mm - 1]} ${yy}<small>${cnt ? cnt + (cnt === 1 ? ' ден' : ' дни') + ' отпуск' : ''}</small></h2><div class="cgrid">${cells}</div></section>`;
   });
