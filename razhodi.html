@@ -90,6 +90,7 @@ button:disabled { cursor: default; opacity: .5 }
 .item.is-done .amt { color: var(--muted); font-weight: 400 }
 .tfoot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; background: var(--bg) }
 .tfoot b { font-size: 1.05rem }
+.paidrow { display: flex; justify-content: flex-end; padding: 0 14px 10px; background: var(--bg) }
 .edit { padding: 4px 14px 16px 52px; display: grid; gap: 12px }
 @media (max-width: 460px) { .edit { padding-left: 14px } }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
@@ -311,6 +312,8 @@ function monthView(m, dis) {
   h += `<section class="sec"><div class="sec-head"><h2>Разходи</h2><span class="sec-meta">${rows.length} реда · платени ${rows.filter(([, x]) => x.paid).length}</span></div><div class="list">`;
   h += rows.length ? rows.map(([id, x], i) => expHtml(id, x, i, rows.length, dis)).join('') : '<div class="empty">Още няма редове.</div>';
   if (rows.length) h += `<div class="tfoot"><span>Общо</span><b>${money(total)}</b></div>`;
+  { const np = rows.filter(([, x]) => x.paid).length, armed = S.armed === 'delpaid';
+    if (np && !S.readOnly && !S.sel) h += `<div class="paidrow"><button class="chipbtn danger${armed ? ' armed' : ''}" data-act="delpaid">${armed ? `Да, изтрий ${np} платени (${money(paid)})` : `Изтрий платените (${np})`}</button></div>`; }
   if (!S.readOnly && !S.sel) h += `<form class="add" data-act="addexp"><input id="ae-name" placeholder="Нов разход…" aria-label="Нов разход" autocomplete="off"><input class="amt-in" id="ae-amt" inputmode="decimal" placeholder="€" aria-label="Сума"><button class="btn" type="submit">Добави</button></form>`;
   h += `</div></section>`;
 
@@ -321,8 +324,7 @@ function monthView(m, dis) {
     h += `<form class="add" data-act="addev"><input id="av-title" placeholder="Ново събитие…" aria-label="Ново събитие" autocomplete="off"><input class="d-in" id="av-date" type="date" min="${m}-01" max="${lastDay}" aria-label="Дата" required><input class="t-in" id="av-time" type="time" aria-label="Час"><button class="btn" type="submit">Добави</button></form>`; }
   h += `</div></section>`;
 
-  if (!S.readOnly) { const np = rows.filter(([, x]) => x.paid).length, armed = S.armed === 'delpaid';
-    h += `<div class="toolsrow">${np && !S.sel ? `<button class="chipbtn danger${armed ? ' armed' : ''}" data-act="delpaid">${armed ? `Да, изтрий ${np} платени (${money(paid)})` : `Изтрий платените (${np})`}</button>` : ''}<button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`; }
+  if (!S.readOnly) h += `<div class="toolsrow"><button class="chipbtn" data-act="selmode" aria-pressed="${!!S.sel}">${S.sel ? 'Спри избора' : 'Избери няколко'}</button></div>`;
   h += leaveHtml(m, evs, dis);
   return h;
 }
