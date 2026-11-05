@@ -191,11 +191,12 @@ const cap = s => s.replace(/^./, c => c.toUpperCase());
 const dayName = k => { const d = dt(k); return `${cap(WDL[d.getDay()])}, ${d.getDate()} ${ML[d.getMonth()]}`; };
 const weekLabel = w => { const a = dt(w), b = dt(addDays(w, 6));
   return a.getMonth() === b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MS[a.getMonth()]}` : `${a.getDate()} ${MS[a.getMonth()]} – ${b.getDate()} ${MS[b.getMonth()]}`; };
-const CATS = [['main', 'Основни'], ['side', 'Гарнитури и салати'], ['dessert', 'Десерти'], ['breakfast', 'Закуски']];
+const CATS = [['main', 'Основни'], ['side', 'Гарнитури и салати'], ['dessert', 'Десерти'], ['breakfast', 'Закуски'], ['fruit', 'Плодове']];
 const CATL = Object.fromEntries(CATS);
-const KINDS = [['breakfast', 'Закуска'], ['cook', 'Готвене'], ['dessert', 'Десерт']];
-const kindOf = cat => cat === 'dessert' ? 'dessert' : cat === 'breakfast' ? 'breakfast' : 'cook';
+const KINDS = [['breakfast', 'Закуска'], ['cook', 'Готвене'], ['dessert', 'Десерт'], ['fruit', 'Плодове за седмицата']];
+const kindOf = cat => ['dessert', 'breakfast', 'fruit'].includes(cat) ? cat : 'cook';
 const catsFor = kind => kind === 'cook' ? ['main', 'side'] : [kind];
+const monthsTxt = ms => ms.map(m => MS[m - 1]).join(', ');
 const keepsTxt = n => n >= 7 ? 'държи седмица' : n >= 2 ? `за ${n} дни` : 'яде се веднага';
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800); }
 
@@ -224,7 +225,7 @@ const GROUPS = [
   ['sweet', 'Сладко и ядки', /шоколад|бисквит|бишкоти|пудинг|фурми|фъст|орехи|шамфъст|оризовки|протеин|кондензирано|кафява захар|пудра/i],
   ['meat', 'Месо и риба', /пилеш|пиле|кайма|свинск|телеш|бекон|шунка|кренвирш|сьомга|риба|скариди|бутчета/i],
   ['dairy', 'Мляко, сирена и яйца', /мляко|сирене|кашкавал|сметана|^масло|пармезан|моцарела|маскарпоне|рикота|скир|яйц/i],
-  ['veg', 'Плодове и зеленчуци', /картоф|лук|морков|чесън|домат|краставиц|чушк|тиквичк|гъби|зеле|карфиол|лимон|лайм|авокадо|банан|ябълк|магданоз|копър|целина|спанак|лапат|коприва|джинджифил/i],
+  ['veg', 'Плодове и зеленчуци', /картоф|лук|морков|чесън|домат|краставиц|чушк|тиквичк|гъби|зеле|карфиол|лимон|лайм|авокадо|банан|ябълк|мандарин|портокал|круш|^нар$|киви|райск|грозде|дюл|ягод|череш|кайси|праск|^диня|пъпеш|слив|малин|боровинк|магданоз|копър|целина|спанак|лапат|коприва|джинджифил/i],
   ['dry', 'Паста, ориз, бобови и тесто', /паста|спагети|фиде|ориз|кори|леща|боб|нахут|ньоки|галета|лаваш|овесени|зърнена/i],
   ['bread', 'Хляб', /хляб/i],
   ['home', 'Провери дали имаш вкъщи', /^(сол|черен пипер|олио|зехтин|брашно|захар|червен пипер|пушен червен пипер|чубрица|кимион|джоджен|риган|розмарин|канела|ванилия|сода|бакпулвер|оцет|соев сос|доматено пюре|мед|какао|кафе|суха мая|бульон|къри|бяло вино)/i],
@@ -291,9 +292,9 @@ const setR = patcher('recipes'), setM = patcher('meals');
 const lastUsed = () => { const u = {}; Object.values(S.meals).forEach(m => { if (m.recipe && (!u[m.recipe] || m.date > u[m.recipe])) u[m.recipe] = m.date; }); return u; };
 const usedCount = () => { const u = {}; Object.values(S.meals).forEach(m => { u[m.recipe] = (u[m.recipe] || 0) + 1; }); return u; };
 // least recently planned first, with a little randomness among the top few
-function suggest(cats, { minKeeps = 0, avoid = new Set() } = {}) {
+function suggest(cats, { minKeeps = 0, avoid = new Set(), month = 0 } = {}) {
   const lu = lastUsed();
-  const pool = Object.entries(S.rec).filter(([id, r]) => cats.includes(r.cat) && r.auto !== false && (r.ing || []).length && (Number(r.keeps) || 1) >= minKeeps && !avoid.has(id))
+  const pool = Object.entries(S.rec).filter(([id, r]) => cats.includes(r.cat) && r.auto !== false && (r.ing || []).length && (Number(r.keeps) || 1) >= minKeeps && !avoid.has(id) && (!month || !(r.months || []).length || r.months.includes(month)))
     .sort((a, b) => (lu[a[0]] || '').localeCompare(lu[b[0]] || ''));
   if (!pool.length) return null;
   return pool[Math.floor(Math.random() * Math.min(5, pool.length))][0];
@@ -306,6 +307,7 @@ function planWeek(w) {
   add(wed, 'cook', suggest(['main'], { minKeeps: 2, avoid })); add(wed, 'cook', suggest(['main'], { minKeeps: 3, avoid })); add(wed, 'cook', suggest(['side'], { avoid }));
   if (!prev.some(([, m]) => m.kind === 'dessert')) add(sun, 'dessert', suggest(['dessert'], { minKeeps: 2, avoid }));
   [sun, wed, sat].forEach(d => add(d, 'breakfast', suggest(['breakfast'], { avoid })));
+  const month = dt(wed).getMonth() + 1; [0, 1, 2].forEach(() => add(sun, 'fruit', suggest(['fruit'], { avoid, month })));
 }
 
 /* ---------- rendering ---------- */
@@ -321,7 +323,8 @@ function pickWeek(ws) {
 const tagsHtml = r => { if (!r) return ''; const t = [];
   if (r.isNew) t.push('<span class="tag new">ново</span>');
   if (r.check) t.push('<span class="tag chk">за проверка</span>');
-  if (r.cat === 'main' || (Number(r.keeps) || 1) >= 2) t.push(`<span class="tag">${keepsTxt(Number(r.keeps) || 1)}</span>`);
+  if (r.cat === 'fruit') t.push(`<span class="tag">${(r.months || []).length ? 'сезон: ' + esc(monthsTxt(r.months)) : 'целогодишно'}</span>`);
+  else if (r.cat === 'main' || (Number(r.keeps) || 1) >= 2) t.push(`<span class="tag">${keepsTxt(Number(r.keeps) || 1)}</span>`);
   return `<span class="tags">${t.join('')}</span>`; };
 
 function render() {
@@ -408,7 +411,7 @@ function shopAll(dis) {
   const ws = allWeeks(), tw = weekOf(today());
   if (!ws.length) return `<div class="card state">Още няма план. Добави седмица в „План“.</div>`;
   if (!S.shopOpen) S.shopOpen = new Set([pickWeek(ws)]);
-  let h = `<p class="hint">Всяка седмица има свой списък: сборът от рецептите за неделя и сряда, за двама. Пазарувай в събота или неделя сутрин. Докосни седмица, за да я отвориш.</p>`;
+  let h = `<p class="hint">Всяка седмица има свой списък: сборът от рецептите за неделя и сряда и плодовете за седмицата, за двама. Пазарувай в събота или неделя сутрин. Докосни седмица, за да я отвориш.</p>`;
   ws.forEach(w => h += shopWeek(w, w === tw, w < tw, dis));
   return h;
 }
@@ -465,7 +468,7 @@ function recHtml(id, r, used, dis) {
     h += `<div class="edit" style="padding-left:14px">
       <div class="row2"><label class="f">Име<input id="r-name-${esc(id)}" data-rid="${esc(id)}" data-f="name" value="${esc(r.name)}"${dis}></label>
       <label class="f">Вид<select data-rid="${esc(id)}" data-f="cat"${dis}>${CATS.map(([c, l]) => `<option value="${c}"${r.cat === c ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
-      <div class="row2"><label class="f">Колко дни държи в хладилника<input id="r-keeps-${esc(id)}" data-rid="${esc(id)}" data-f="keeps" inputmode="numeric" value="${Number(r.keeps) || 1}"${dis}></label>
+      <div class="row2">${r.cat === 'fruit' ? `<label class="f">Сезон, месеци с числа (напр. 10, 11, 12)<input id="r-months-${esc(id)}" data-rid="${esc(id)}" data-f="months" inputmode="numeric" value="${esc((r.months || []).join(', '))}" placeholder="празно = целогодишно"${dis}></label>` : `<label class="f">Колко дни държи в хладилника<input id="r-keeps-${esc(id)}" data-rid="${esc(id)}" data-f="keeps" inputmode="numeric" value="${Number(r.keeps) || 1}"${dis}></label>`}
       <label class="f">Бележка<input id="r-note-${esc(id)}" data-rid="${esc(id)}" data-f="note" value="${esc(r.note)}" placeholder="напр. рецептата е в Инстаграм"${dis}></label></div>
       <label class="f">Продукти, по един на ред: име и количество (за двама, за целия съд)<textarea id="r-ing-${esc(id)}" data-rid="${esc(id)}" data-f="ing" placeholder="Пилешко филе 800 г&#10;Яйца 2 бр&#10;Сол"${dis}>${esc((r.ing || []).join('\n'))}</textarea></label>
       <div class="cbs"><label><input type="checkbox" data-rid="${esc(id)}" data-f="check" ${r.check ? 'checked' : ''}${dis}> За проверка</label>
@@ -560,6 +563,7 @@ root.addEventListener('change', e => {
   if (t.dataset.rid && S.rec[t.dataset.rid]) {
     const id = t.dataset.rid, k = t.dataset.f, r = S.rec[id]; let v = t.type === 'checkbox' ? t.checked : t.value.trim();
     if (k === 'name' && !v) { t.value = r.name; return; }
+    if (k === 'months') v = [...new Set(v.split(/[^0-9]+/).map(Number).filter(n => n >= 1 && n <= 12))].sort((a, b) => a - b);
     if (k === 'keeps') { v = parseInt(v, 10); if (!(v >= 1)) { t.value = Number(r.keeps) || 1; return; } }
     if (k === 'ing') v = v.split('\n').map(s => s.trim()).filter(Boolean).map(s => ingLine(parseIng(s)));
     setR(id, { [k]: v }); if (t.type === 'checkbox' || k === 'cat') render(); else schedule();
