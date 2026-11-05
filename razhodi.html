@@ -136,7 +136,8 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; col
 .day.we { color: var(--muted) }
 .day.blank { visibility: hidden }
 .day:not(.blank):not(:disabled):hover { border-color: var(--line) }
-.day.today { border-color: var(--accent); font-weight: 700 }
+.day.today { border-color: transparent; box-shadow: inset 0 0 0 2px var(--danger); font-weight: 700 }
+.day .tdy { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: var(--danger); color: var(--surface); font-size: .58rem; font-weight: 700; line-height: 1; padding: 2px 5px; border-radius: 99px; letter-spacing: .02em; pointer-events: none; z-index: 1 }
 .day.leave { background: var(--accent); color: var(--on-accent); font-weight: 700 }
 .day .dot { position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--wait) }
 .day.leave .dot { background: var(--on-accent) }
@@ -375,12 +376,12 @@ function leaveHtml(m, evs, dis) {
   let cells = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'].map(w => `<span class="wd">${w}</span>`).join('');
   for (let i = 0; i < first; i++) cells += '<span class="day blank"></span>';
   for (let d = 1; d <= days; d++) { const k = `${m}-${pad(d)}`, wd = (first + d - 1) % 7, on = !!S.leave[k];
-    cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}" data-act="vday" data-d="${k}" aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуск' : ''}"${dis}>${d}${evDays.has(k) ? '<span class="dot"></span>' : ''}</button>`; }
+    cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}" data-act="vday" data-d="${k}" aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуск' : ''}"${dis}>${d}${evDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`; }
   return `<section class="sec"><div class="sec-head"><h2>Отпуск</h2><span class="sec-meta">${lv.length ? lv.length + (lv.length === 1 ? ' ден' : ' дни') : ''}</span></div>
     <div class="list cal">
       ${lv.length ? `<div class="lchips">${lv.map(k => { const d = dt(k); return `<span class="lchip">${WD[d.getDay()]}, ${d.getDate()} ${MS[d.getMonth()]}</span>`; }).join('')}</div>` : '<p class="hint">Няма отпуск този месец.</p>'}
       <div class="cgrid">${cells}</div>
-      <div class="legend"><span><i style="background:var(--accent)"></i>отпуск</span><span><i style="background:var(--wait);border-radius:50%"></i>събитие</span></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>отпуск</span><span><i style="background:var(--wait);border-radius:50%"></i>събитие</span><span><i style="box-shadow:inset 0 0 0 2px var(--danger)"></i>днес</span></div>
       <p class="hint">Докосни ден, за да сложиш или махнеш отпуск. Същите дни се виждат и в Задачи → Отпуски.</p>
     </div></section>`;
 }
