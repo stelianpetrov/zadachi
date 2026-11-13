@@ -1,7 +1,7 @@
 /* Offline shell: pages and scripts load from the network first and fall back to the last copy when offline.
    Supabase requests (data and login) are never cached here. */
-const CACHE = 'zadachi-v3';
-const SHELL = ['./', 'index.html', 'bebe.html', 'razhodi.html', 'gotvene.html', 'auth.js', 'manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png'];
+const CACHE = 'zadachi-v4';
+const SHELL = ['./', 'index.html', 'bebe.html', 'razhodi.html', 'gotvene.html', 'belezhki.html', 'auth.js', 'manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png'];
 const LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js';
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all([c.addAll(SHELL), c.add(LIB).catch(() => {})])).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
