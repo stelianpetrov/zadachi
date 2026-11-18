@@ -1,0 +1,287 @@
+<!doctype html><html lang="bg"><head><meta charset="utf-8"><title>Работа</title><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#F2F4F8" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#11141A" media="(prefers-color-scheme: dark)"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Задачи"><meta name="referrer" content="strict-origin-when-cross-origin"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://dhydrtoxydaqxdvprjlp.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;1,7..72,500&family=Onest:wght@400;500;600&display=swap">
+<style>
+/* Layout: two sections (monthly, quarterly). Each shows one period at a time; ticks belong to that period only. */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --ink: #1D2330; --muted: #5F6878; --line: #DCE1EA;
+  --accent: #2F5C8F; --accent-soft: #E0E9F4; --on-accent: #FFFFFF;
+  --ok: #357552; --ok-soft: #DFEFE5; --wait: #94590A; --wait-soft: #FAEDD6; --danger: #B3261E; --danger-soft: #FBE7E5;
+  --display: "Literata", Georgia, "Times New Roman", serif;
+  --body: "Onest", "Segoe UI", Roboto, Arial, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11141A; --surface: #1A1F28; --ink: #E8ECF3; --muted: #9AA3B3; --line: #2C3340;
+  --accent: #8DB4E6; --accent-soft: #1C2A3D; --on-accent: #0B1A2C;
+  --ok: #7CC59A; --ok-soft: #1B3025; --wait: #E7B05A; --wait-soft: #372A15; --danger: #F2827A; --danger-soft: #3B1C1A;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11141A; --surface: #1A1F28; --ink: #E8ECF3; --muted: #9AA3B3; --line: #2C3340;
+  --accent: #8DB4E6; --accent-soft: #1C2A3D; --on-accent: #0B1A2C;
+  --ok: #7CC59A; --ok-soft: #1B3025; --wait: #E7B05A; --wait-soft: #372A15; --danger: #F2827A; --danger-soft: #3B1C1A;
+  color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 60px }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance }
+h1 { font-size: 1.9rem; line-height: 1.15 }
+.sub { color: var(--muted); margin: 4px 0 0 }
+button, input, select, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+button:disabled { cursor: default; opacity: .5 }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px }
+.state { text-align: center; color: var(--muted); padding: 30px 10px }
+.state.err { color: var(--danger) }
+
+.sec { display: flex; flex-direction: column; gap: 10px }
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap }
+.sec-head h2 { font-size: 1.3rem }
+.pnav { display: flex; align-items: center; gap: 4px }
+.pnav b { min-width: 9.5em; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums }
+.pnav .iconbtn { font-size: 1.3rem; padding: 2px 10px }
+.pnow { font-size: .8rem; border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 3px 10px; color: var(--accent) }
+.progress { display: flex; align-items: center; gap: 10px; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.bar { flex: 1; display: flex; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden }
+.bar span { display: block; height: 100%; background: var(--ok) }
+
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.empty { padding: 14px 16px; color: var(--muted); font-size: .9rem }
+.item { border-top: 1px solid var(--line) }
+.item:first-child { border-top: 0 }
+.item-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 11px 14px }
+.check { appearance: none; -webkit-appearance: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--muted); background: var(--surface); margin: 0; display: grid; place-content: center; cursor: pointer }
+.check::after { content: ""; width: 12px; height: 7px; border: solid var(--surface); border-width: 0 0 2.5px 2.5px; transform: rotate(-45deg) translate(1px,-1px); opacity: 0 }
+.check:checked { background: var(--ok); border-color: var(--ok) }
+.check:checked::after { opacity: 1 }
+.item-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-top: 2px }
+.item-name { font-weight: 500; overflow-wrap: anywhere }
+.item-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .8rem; color: var(--muted) }
+.tag { border-radius: 99px; padding: 1px 8px; background: var(--bg); font-variant-numeric: tabular-nums }
+.tag.late { background: var(--danger-soft); color: var(--danger); font-weight: 500 }
+.tag.today { background: var(--wait-soft); color: var(--wait); font-weight: 500 }
+.tag.done { background: var(--ok-soft); color: var(--ok) }
+.notes { margin: 2px 0 0; padding-left: 18px; font-size: .86rem; color: var(--muted) }
+.notes li { overflow-wrap: anywhere }
+.item.is-done .item-name { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted) }
+.item.is-done .notes { display: none }
+.iconbtn { border: 1px solid transparent; background: none; border-radius: 8px; padding: 2px 8px; color: var(--muted); font-size: 1.1rem; line-height: 1.4 }
+.iconbtn:hover { border-color: var(--line) }
+
+.edit { padding: 4px 14px 16px 52px; display: grid; gap: 12px }
+@media (max-width: 460px) { .edit { padding-left: 14px } }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+@media (max-width: 460px) { .row2 { grid-template-columns: 1fr } }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); letter-spacing: .02em; min-width: 0 }
+.f input, .f select, .f textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px; font-size: .95rem; color: var(--ink); width: 100%; min-width: 0 }
+.f textarea { min-height: 90px; resize: vertical }
+.edit-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center }
+.edit-foot .grp { display: flex; gap: 6px; flex-wrap: wrap }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 14px; font-weight: 500 }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.btn.danger { color: var(--danger) }
+.btn.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--surface) }
+.add { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg) }
+.add input { flex: 1 1 160px; min-width: 0; border: 1px dashed var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px }
+.add input.d-in { flex: 0 0 88px }
+.hint { font-size: .85rem; color: var(--muted); margin: 0 }
+.err-line { color: var(--danger); font-size: .85rem; margin: 0 }
+.btn, .iconbtn, .check, .appnav a { -webkit-tap-highlight-color: transparent; touch-action: manipulation }
+</style>
+
+<div class="wrap app-wrap">
+  <header>
+    <h1>Работа</h1>
+    <p class="sub">Повтарящите се задачи в Adecco. Отметките важат само за избрания месец или тримесечие, така че всеки нов период започва чист.</p>
+  </header>
+  <p class="state" id="state">Зареждане…</p>
+  <section class="sec" id="sec-m" hidden></section>
+  <section class="sec" id="sec-q" hidden></section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script>
+/* collection: work/<id> {freq: 'm'|'q', title, day (1–31, monthly only), onlyQ (1–4, optional), notes (one point per line), order, done: {'2026-11' | '2026-Q4': ISO time}}
+   The work data lives only in Supabase behind the login; nothing about it is written into this file. */
+const MONTHS = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const today = () => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() }; };
+const mKey = (y, m) => y + '-' + String(m + 1).padStart(2, '0');
+const qKey = (y, q) => y + '-Q' + q;
+const qOf = m => Math.floor(m / 3) + 1;
+const shortDate = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3); };
+const ord = n => n + '-во число';
+
+let db = null, col = null, items = [], loaded = false, editing = null, armed = null;
+const t0 = today();
+const view = { m: { y: t0.y, m: t0.m }, q: { y: t0.y, q: qOf(t0.m) } };
+const errs = { m: '', q: '' };
+
+function periodOf(freq) { return freq === 'm' ? mKey(view.m.y, view.m.m) : qKey(view.q.y, view.q.q); }
+function isCurrent(freq) { const t = today(); return freq === 'm' ? view.m.y === t.y && view.m.m === t.m : view.q.y === t.y && view.q.q === qOf(t.m); }
+function cmpPeriod(freq) { // -1 past, 0 current, 1 future
+  const t = today(), a = freq === 'm' ? view.m.y * 12 + view.m.m : view.q.y * 4 + view.q.q, b = freq === 'm' ? t.y * 12 + t.m : t.y * 4 + qOf(t.m);
+  return Math.sign(a - b);
+}
+function visible(freq) {
+  return items.filter(it => it.freq === freq && (freq !== 'm' || !it.onlyQ || +it.onlyQ === qOf(view.m.m)));
+}
+function sorted(freq) {
+  const p = periodOf(freq);
+  return visible(freq).sort((a, b) => (!!(a.done || {})[p] - !!(b.done || {})[p]) || ((+a.day || 99) - (+b.day || 99)) || ((a.order ?? 0) - (b.order ?? 0)) || String(a.title).localeCompare(b.title));
+}
+
+function statusTag(it, freq, isDone) {
+  const p = periodOf(freq), when = cmpPeriod(freq);
+  if (isDone) return `<span class="tag done">Готово · ${esc(shortDate(it.done[p]))}</span>`;
+  if (when < 0) return '<span class="tag late">Не е отметната</span>';
+  if (freq === 'm' && when === 0 && +it.day) {
+    const d = today().d;
+    if (d > +it.day) return '<span class="tag late">Закъсняла</span>';
+    if (d === +it.day) return '<span class="tag today">Днес</span>';
+  }
+  return '';
+}
+
+function itemHtml(it, freq) {
+  const p = periodOf(freq), isDone = !!(it.done || {})[p];
+  const notes = String(it.notes || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const meta = [];
+  if (freq === 'm' && +it.day) meta.push(`<span class="tag">до ${ord(+it.day)}</span>`);
+  if (it.onlyQ) meta.push(`<span class="tag">само в Q${+it.onlyQ}</span>`);
+  const st = statusTag(it, freq, isDone); if (st) meta.push(st);
+  let h = `<div class="item${isDone ? ' is-done' : ''}" data-id="${esc(it.id)}">
+    <div class="item-row">
+      <input type="checkbox" class="check" data-act="tick" ${isDone ? 'checked' : ''} aria-label="Готово: ${esc(it.title)}">
+      <div class="item-main">
+        <span class="item-name">${esc(it.title)}</span>
+        ${meta.length ? `<div class="item-meta">${meta.join('')}</div>` : ''}
+        ${notes.length ? `<ul class="notes">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      </div>
+      <button class="iconbtn" type="button" data-act="edit" aria-label="Редактирай" aria-expanded="${editing === it.id}">✎</button>
+    </div>`;
+  if (editing === it.id) h += `<form class="edit" data-act="save">
+      <label class="f">Задача<input name="title" required value="${esc(it.title)}"></label>
+      <div class="row2">
+        ${freq === 'm' ? `<label class="f">До кое число<input name="day" type="number" min="1" max="31" inputmode="numeric" value="${esc(it.day || '')}"></label>` : `<label class="f">Ред<input name="order" type="number" min="0" inputmode="numeric" value="${esc(it.order ?? '')}"></label>`}
+        <label class="f">Само в тримесечие<select name="onlyQ"><option value="">Всяко</option>${[1, 2, 3, 4].map(q => `<option value="${q}"${+it.onlyQ === q ? ' selected' : ''}>Q${q}</option>`).join('')}</select></label>
+      </div>
+      <label class="f">Бележки (по една на ред)<textarea name="notes">${esc(it.notes || '')}</textarea></label>
+      <div class="edit-foot">
+        <button class="btn danger${armed === it.id ? ' armed' : ''}" type="button" data-act="del">${armed === it.id ? 'Сигурно ли? Изтрий' : 'Изтрий'}</button>
+        <div class="grp"><button class="btn" type="button" data-act="cancel">Отказ</button><button class="btn primary" type="submit">Запази</button></div>
+      </div>
+    </form>`;
+  return h + '</div>';
+}
+
+function sectionHtml(freq) {
+  const list = sorted(freq), p = periodOf(freq), done = list.filter(it => (it.done || {})[p]).length;
+  const label = freq === 'm' ? MONTHS[view.m.m][0].toUpperCase() + MONTHS[view.m.m].slice(1) + ' ' + view.m.y : 'Q' + view.q.q + ' ' + view.q.y;
+  const pct = list.length ? Math.round(done / list.length * 100) : 0;
+  return `<div class="sec-head">
+      <h2>${freq === 'm' ? 'Месечни' : 'Тримесечни'}</h2>
+      <div class="pnav">
+        ${isCurrent(freq) ? '' : `<button class="pnow" type="button" data-act="now">${freq === 'm' ? 'Този месец' : 'Това тримесечие'}</button>`}
+        <button class="iconbtn" type="button" data-act="prev" aria-label="Предишен период">‹</button>
+        <b aria-live="polite">${label}</b>
+        <button class="iconbtn" type="button" data-act="next" aria-label="Следващ период">›</button>
+      </div>
+    </div>
+    <div class="progress"><span>${done} от ${list.length} готови</span><div class="bar" aria-hidden="true"><span style="width:${pct}%"></span></div></div>
+    <div class="list">
+      ${list.length ? list.map(it => itemHtml(it, freq)).join('') : '<p class="empty">Няма задачи за този период.</p>'}
+      <form class="add" data-act="add">
+        <input name="title" placeholder="Нова ${freq === 'm' ? 'месечна' : 'тримесечна'} задача" aria-label="Нова задача" required>
+        ${freq === 'm' ? '<input class="d-in" name="day" type="number" min="1" max="31" inputmode="numeric" placeholder="Число" aria-label="До кое число">' : ''}
+        <button class="btn" type="submit">Добави</button>
+      </form>
+    </div>
+    ${errs[freq] ? `<p class="err-line" role="alert">${esc(errs[freq])}</p>` : ''}`;
+}
+
+function render() {
+  if (!loaded) return;
+  document.getElementById('state').hidden = true;
+  ['m', 'q'].forEach(f => { const el = document.getElementById('sec-' + f); el.hidden = false; el.innerHTML = sectionHtml(f); });
+}
+
+async function run(freq, fn) {
+  try { errs[freq] = ''; await fn(); }
+  catch (e) { errs[freq] = navigator.onLine ? 'Не се записа. Опитай пак.' : 'Без връзка: промяната не е записана.'; render(); }
+}
+
+function wire(freq) {
+  const sec = document.getElementById('sec-' + freq);
+  sec.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM') return;
+    const act = b.dataset.act, row = b.closest('.item'), id = row && row.dataset.id, it = items.find(x => x.id === id);
+    if (act === 'prev' || act === 'next') {
+      const s = act === 'prev' ? -1 : 1;
+      if (freq === 'm') { const n = view.m.y * 12 + view.m.m + s; view.m = { y: Math.floor(n / 12), m: n % 12 }; }
+      else { const n = view.q.y * 4 + view.q.q - 1 + s; view.q = { y: Math.floor(n / 4), q: n % 4 + 1 }; }
+      editing = null; armed = null; render(); return;
+    }
+    if (act === 'now') { const t = today(); if (freq === 'm') view.m = { y: t.y, m: t.m }; else view.q = { y: t.y, q: qOf(t.m) }; render(); return; }
+    if (act === 'tick' && it) {
+      const p = periodOf(freq), done = Object.assign({}, it.done || {});
+      if (b.checked) done[p] = new Date().toISOString(); else delete done[p];
+      // write the whole doc so un-ticking really removes the period from the map
+      run(freq, () => col.doc(id).set(Object.assign({}, stripId(it), { done })));
+      return;
+    }
+    if (act === 'edit' && it) { editing = editing === id ? null : id; armed = null; render(); if (editing) { const i = sec.querySelector('.edit input[name=title]'); if (i) i.focus(); } return; }
+    if (act === 'cancel') { editing = null; armed = null; render(); return; }
+    if (act === 'del' && it) {
+      if (armed !== id) { armed = id; render(); return; }
+      editing = null; armed = null; run(freq, () => col.doc(id).delete()); return;
+    }
+  });
+  sec.addEventListener('submit', e => {
+    e.preventDefault(); const f = e.target, fd = new FormData(f);
+    const title = String(fd.get('title') || '').trim(); if (!title) return;
+    const day = Math.min(31, Math.max(0, parseInt(fd.get('day'), 10) || 0));
+    if (f.dataset.act === 'add') {
+      const same = items.filter(x => x.freq === freq);
+      const doc = { freq, title, order: same.reduce((m, x) => Math.max(m, +x.order || 0), 0) + 1, done: {} };
+      if (freq === 'm' && day) doc.day = day;
+      const id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      run(freq, () => col.doc(id).set(doc)); return;
+    }
+    if (f.dataset.act === 'save') {
+      const id = f.closest('.item').dataset.id, it = items.find(x => x.id === id); if (!it) return;
+      const doc = Object.assign(stripId(it), { title, notes: String(fd.get('notes') || '').trim() });
+      if (freq === 'm') { if (day) doc.day = day; else delete doc.day; }
+      else { const o = parseInt(fd.get('order'), 10); if (!isNaN(o)) doc.order = o; }
+      const q = parseInt(fd.get('onlyQ'), 10); if (q >= 1 && q <= 4) doc.onlyQ = q; else delete doc.onlyQ;
+      editing = null; run(freq, () => col.doc(id).set(doc));
+    }
+  });
+}
+const stripId = it => { const o = Object.assign({}, it); delete o.id; return o; };
+
+(async () => {
+  db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+  const st = document.getElementById('state');
+  if (!db) { st.textContent = 'Задачите не могат да се заредят.'; st.classList.add('err'); return; }
+  col = db.collection('work');
+  wire('m'); wire('q');
+  col.onSnapshot(s => { items = s.docs.map(d => Object.assign({ id: d.id }, d.data())); loaded = true; render(); },
+    () => { st.textContent = 'Задачите не могат да се заредят. Опитай пак по-късно.'; st.classList.add('err'); });
+  // a new day can change "Днес" / "Закъсняла"; refresh when the tab comes back
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+})();
+</script>
+
+<div class="wrap app-wrap" style="margin-top:28px">
+  <section class="card" style="display:grid;gap:10px">
+    <div class="acct"><span>Влязъл като <b id="acct-email"></b></span><button class="btn" type="button" onclick="zadSb.auth.signOut()">Изход</button></div>
+  </section>
+</div>
