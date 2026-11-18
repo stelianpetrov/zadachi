@@ -256,7 +256,7 @@ body.dragmode { touch-action: none; overscroll-behavior: contain }
 .day.today { border-color: transparent; box-shadow: inset 0 0 0 2px var(--danger); font-weight: 700 }
 .day .tdy { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: var(--danger); color: var(--surface); font-size: .58rem; font-weight: 700; line-height: 1; padding: 2px 5px; border-radius: 99px; letter-spacing: .02em; pointer-events: none; z-index: 1 }
 .day.leave { background: var(--accent); color: var(--on-accent); font-weight: 700 }
-.day.leave.past { opacity: .8 }
+.day.gone { opacity: .45 }
 .day .dot { position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--wait) }
 .day.leave .dot { background: var(--on-accent) }
 .day.hol { background: rgba(37,99,235,.2); color: inherit; font-weight: 700; border-color: rgba(37,99,235,.45) }
@@ -653,22 +653,23 @@ const HOL = { // [име, true = официален празник, false = по
 '2027-12-24':['Бъдни вечер',1],'2027-12-25':['Рождество Христово',1],'2027-12-26':['Рождество Христово (2-ри ден)',1],'2027-12-27':['Почивен ден (за 25 декември)',0],'2027-12-28':['Почивен ден (за 26 декември)',0] };
 let TIPS = {};
 function leaveView(dis) {
-  const tk = today(), dates = Object.values(S.leave).map(v => v.date).filter(Boolean).sort();
+  // past leave days are hidden everywhere (data stays in the db, only the view skips them)
+  const tk = today(), dates = Object.values(S.leave).map(v => v.date).filter(d => d && d >= tk).sort();
   const cm = tk.slice(0, 7);
-  let start = dates.length && dates[0].slice(0, 7) < cm ? dates[0].slice(0, 7) : cm;
+  let start = cm;
   let end = [dates.length ? dates[dates.length - 1].slice(0, 7) : cm, '2026-12'].sort().pop();
   const months = []; let [y, m] = start.split('-').map(Number); const [ey, em] = end.split('-').map(Number);
   let guard = 0;
   while ((y < ey || (y === ey && m <= em)) && guard++ < 36) { months.push([y, m]); m++; if (m > 12) { m = 1; y++; } }
   for (let i = 0; i < S.extraMonths; i++) { months.push([y, m]); m++; if (m > 12) { m = 1; y++; } }
-  const up = dates.filter(d => d >= tk);
+  const up = dates;
   const byM = {}; dates.forEach(d => (byM[d.slice(0, 7)] = byM[d.slice(0, 7)] || []).push(d));
   const taskDays = new Set(taskEntries().filter(([, t]) => t.due && !t.done).map(([, t]) => t.due));
   TIPS = {};
   taskEntries().filter(([, t]) => t.due && !t.done).sort((a, b) => String(a[1].time || '99').localeCompare(String(b[1].time || '99'))).forEach(([, t]) => (TIPS[t.due] = TIPS[t.due] || []).push((t.time ? t.time + ' ' : '') + (t.title || '')));
-  let h = `<section class="card leavesum"><div class="leavebig"><b>${up.length}</b><span>${up.length === 1 ? 'предстоящ почивен ден' : 'предстоящи почивни дни'}</span><span class="hint">${dates.length} общо в списъка</span></div>`;
+  let h = `<section class="card leavesum"><div class="leavebig"><b>${up.length}</b><span>${up.length === 1 ? 'предстоящ почивен ден' : 'предстоящи почивни дни'}</span></div>`;
   Object.keys(byM).sort().forEach(k => { const [yy, mm] = k.split('-').map(Number);
-    h += `<div class="lmonth"><b>${ML[mm - 1]}</b><span class="lchips">${byM[k].map(d => `<span class="lchip${d < tk ? ' past' : ''}">${WD[dt(d).getDay()]} ${dt(d).getDate()}</span>`).join('')}</span></div>`; });
+    h += `<div class="lmonth"><b>${ML[mm - 1]}</b><span class="lchips">${byM[k].map(d => `<span class="lchip">${WD[dt(d).getDay()]} ${dt(d).getDate()}</span>`).join('')}</span></div>`; });
   if (!dates.length) h += `<p class="hint">Още няма отпуски. Докосни ден в календара отдолу.</p>`;
   h += `</section><div class="legend"><span><i style="background:var(--accent)"></i>отпуска</span><span><i style="background:rgba(37,99,235,.35);border:1px solid rgba(37,99,235,.7)"></i>официален празник</span><span><i style="background:rgba(37,99,235,.1);border:1px dashed rgba(37,99,235,.7)"></i>почивен ден</span><span><i style="box-shadow:inset 0 0 0 2px var(--danger)"></i>днес</span><span><i style="background:var(--wait);border-radius:50%"></i>има задача</span>${S.readOnly ? '' : '<span>Докосни ден, за да го добавиш или махнеш.</span>'}</div><div class="cals">`;
   months.forEach(([yy, mm]) => {
@@ -678,8 +679,8 @@ function leaveView(dis) {
     for (let d = 1; d <= nd; d++) {
       const k = `${yy}-${pad(mm)}-${pad(d)}`, wd = (first + d - 1) % 7, hol = HOL[k];
       if (hol) { cells += `<button class="day hol${hol[1] ? '' : ' off'}${k === tk ? ' today' : ''}" data-act="hday" data-n="${esc(hol[0])}" data-tip="1" data-d="${k}" aria-label="${d} ${ML[mm - 1]}, ${esc(hol[0])}">${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`; continue; }
-      const on = !!S.leave[k];
-      cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}${on && k < tk ? ' past' : ''}" data-act="vday" data-d="${k}"${taskDays.has(k) || on ? ' data-tip="1"' : ''} aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуска' : ''}"${dis}>${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`;
+      const gone = k < tk, on = !gone && !!S.leave[k];
+      cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}${gone ? ' gone' : ''}" data-act="vday" data-d="${k}"${taskDays.has(k) || on ? ' data-tip="1"' : ''} aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуска' : ''}"${gone ? ' disabled' : dis}>${d}${taskDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`;
     }
     h += `<section class="cal"><h2>${ML[mm - 1]} ${yy}<small>${cnt ? cnt + (cnt === 1 ? ' ден' : ' дни') + ' отпуск' : ''}</small></h2><div class="cgrid">${cells}</div></section>`;
   });
@@ -822,7 +823,8 @@ root.addEventListener('click', e => {
   }
   else if (act === 'vday') {
     const d = b.dataset.d;
-    if (S.leave[d]) { delete S.leave[d]; remove('vacation', d); toast('Махната отпуска: ' + fmtDateLong(d)); }
+    if (d < today()) { /* past days are read-only */ }
+    else if (S.leave[d]) { delete S.leave[d]; remove('vacation', d); toast('Махната отпуска: ' + fmtDateLong(d)); }
     else { create('vacation', d, { date: d, created: new Date().toISOString() }); toast('Отпуска: ' + fmtDateLong(d)); }
   }
   else if (act === 'moremonths') S.extraMonths++;
@@ -987,7 +989,7 @@ setInterval(() => { if (ready() && !typing()) render(); }, 60000);
   function show(b) {
     const k = b.dataset.d, rows = [];
     if (HOL[k]) rows.push('<div class="th">' + esc(HOL[k][0]) + '</div>');
-    if (S.leave[k] && !HOL[k]) rows.push('<div class="th">отпуска</div>');
+    if (S.leave[k] && !HOL[k] && k >= today()) rows.push('<div class="th">отпуска</div>');
     (TIPS[k] || []).forEach(x => rows.push('<div>• ' + esc(x) + '</div>'));
     if (!rows.length) return hide();
     tip.innerHTML = rows.join(''); tip.style.display = 'block';
