@@ -135,6 +135,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; col
 .day { aspect-ratio: 1; max-height: 48px; border: 1px solid transparent; background: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; font-size: .92rem; padding: 0; position: relative; -webkit-user-select: none; user-select: none }
 .day.we { color: var(--muted) }
 .day.blank { visibility: hidden }
+.day.gone { opacity: .45 }
 .day:not(.blank):not(:disabled):hover { border-color: var(--line) }
 .day.today { border-color: transparent; box-shadow: inset 0 0 0 2px var(--danger); font-weight: 700 }
 .day .tdy { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: var(--danger); color: var(--surface); font-size: .58rem; font-weight: 700; line-height: 1; padding: 2px 5px; border-radius: 99px; letter-spacing: .02em; pointer-events: none; z-index: 1 }
@@ -207,7 +208,8 @@ const rowsOf = m => Object.entries(S.exp).filter(([, x]) => x.month === m).sort(
 // display order: paid rows sink to the bottom, keeping their relative order
 const viewRows = m => rowsOf(m).sort((a, b) => !!a[1].paid - !!b[1].paid);
 const evsOf = m => Object.entries(S.ev).filter(([, x]) => x.month === m).sort((a, b) => (a[1].date || '').localeCompare(b[1].date || '') || (a[1].time || '').localeCompare(b[1].time || ''));
-const leaveOf = m => Object.values(S.leave).map(v => v.date).filter(d => d && d.startsWith(m)).sort();
+// past leave days are hidden (data stays in the db, only the view skips them), same as Задачи → Отпуски
+const leaveOf = m => { const tk = today(); return Object.values(S.leave).map(v => v.date).filter(d => d && d.startsWith(m) && d >= tk).sort(); };
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800); }
 function gcal(e) {
   if (!e.date) return '';
@@ -377,8 +379,8 @@ function leaveHtml(m, evs, dis) {
   const lv = leaveOf(m), evDays = new Set(evs.map(([, e]) => e.date));
   let cells = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'].map(w => `<span class="wd">${w}</span>`).join('');
   for (let i = 0; i < first; i++) cells += '<span class="day blank"></span>';
-  for (let d = 1; d <= days; d++) { const k = `${m}-${pad(d)}`, wd = (first + d - 1) % 7, on = !!S.leave[k];
-    cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}" data-act="vday" data-d="${k}" aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуск' : ''}"${dis}>${d}${evDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`; }
+  for (let d = 1; d <= days; d++) { const k = `${m}-${pad(d)}`, wd = (first + d - 1) % 7, gone = k < tk, on = !gone && !!S.leave[k];
+    cells += `<button class="day${wd > 4 ? ' we' : ''}${k === tk ? ' today' : ''}${on ? ' leave' : ''}${gone ? ' gone' : ''}" data-act="vday" data-d="${k}" aria-pressed="${on}" aria-label="${d} ${ML[mm - 1]}${on ? ', отпуск' : ''}"${gone ? ' disabled' : dis}>${d}${evDays.has(k) ? '<span class="dot"></span>' : ''}${k === tk ? '<span class="tdy">днес</span>' : ''}</button>`; }
   return `<section class="sec"><div class="sec-head"><h2>Отпуск</h2><span class="sec-meta">${lv.length ? lv.length + (lv.length === 1 ? ' ден' : ' дни') : ''}</span></div>
     <div class="list cal">
       ${lv.length ? `<div class="lchips">${lv.map(k => { const d = dt(k); return `<span class="lchip">${WD[d.getDay()]}, ${d.getDate()} ${MS[d.getMonth()]}</span>`; }).join('')}</div>` : '<p class="hint">Няма отпуск този месец.</p>'}
