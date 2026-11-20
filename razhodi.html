@@ -496,7 +496,36 @@ setInterval(() => { if (ready() && !typing()) render(); }, 60000);
     Object.keys(LOCAL[col]).forEach(id => { if (!m[id]) m[id] = LOCAL[col][id]; });
     S[KEYS[col]] = m; S.got[col] = 1; schedule();
   }, fail));
+  oneTimeJan2027();
 })();
+
+/* one-time data change (2026-11-20, asked by Stelian): drop the past November events and start
+   January 2027 as a copy of December's rows. Runs against the server with the signed-in session;
+   skips itself once months/2027-01 exists, and never overwrites rows that are already there. */
+async function oneTimeJan2027() {
+  const sb = window.zadSb; if (!sb) return;
+  try {
+    if (localStorage.getItem('zad-mig-2701') === 'done') return;
+  } catch (e) {}
+  try {
+    const has = await sb.from('docs').select('id').eq('col', 'months').eq('id', '2027-01');
+    if (has.error) return;
+    if (!has.data.length) {
+      const dec = await sb.from('docs').select('id,data').eq('col', 'mexp').limit(10000);
+      if (dec.error) return;
+      const rows = dec.data.filter(r => r.data && r.data.month === '2026-12')
+        .sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0))
+        .map((r, i) => ({ col: 'mexp', id: 'e2701-' + pad(i + 1), data: { month: '2027-01', name: r.data.name, amount: Number(r.data.amount) || 0, note: r.data.note || '', paid: false, order: i }, updated_at: new Date().toISOString() }));
+      const now = new Date().toISOString();
+      const ins = await sb.from('docs').upsert(rows.concat([{ col: 'months', id: '2027-01', data: { stated: 0, note: '', created: now }, updated_at: now }]), { onConflict: 'col,id', ignoreDuplicates: true });
+      if (ins.error) return;
+      await sb.from('docs').delete().eq('col', 'mevents').in('id', ['v2611-02', 'v2611-03', 'v2611-04', 'v2611-05']);
+      toast('Добавен Януари 2027 (' + rows.length + ' реда)');
+      setTimeout(() => location.reload(), 1500);
+    }
+    try { localStorage.setItem('zad-mig-2701', 'done'); } catch (e) {}
+  } catch (e) {}
+}
 </script>
 
 <div class="wrap app-wrap" style="margin-top:28px">
