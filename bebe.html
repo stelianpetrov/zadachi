@@ -178,6 +178,8 @@ const parseNum = v => { const n = parseFloat(String(v ?? '').replace(/\s/g, '').
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const pct = (a, b) => b > 0 ? Math.min(100, a / b * 100) : 0;
 
+/* „За болницата“ is a packing list, not shopping: ticked means „взето“, no prices, and it stays out of money totals */
+const isPack = cid => /болниц/i.test((S.cats[cid] && S.cats[cid].name) || '');
 const status = it => it.bought ? 'bought' : it.ordered ? 'ordered' : 'todo';
 const paid = it => (it.bought || it.ordered) && !it.gift ? (Number(it.price) || 0) : 0;
 const planned = it => !it.bought && !it.ordered && !it.gift ? (Number(it.estimate) || 0) : 0;
@@ -257,7 +259,7 @@ function moneyBar(spent, plan, budget) {
 function render() {
   if (S.noDb) { root.innerHTML = `<div class="card state">Нямаш достъп до данните. Излез и влез отново.</div>`; return; }
   if (!S.got.c || !S.got.i) { root.innerHTML = `<div class="state">Зареждане на списъка…</div>`; return; }
-  const all = Object.values(S.items), st = stats(all), budget = Number(S.settings.budget) || 0;
+  const all = Object.values(S.items).filter(it => !isPack(it.cat)), st = stats(all), budget = Number(S.settings.budget) || 0;
   const dis = S.readOnly ? ' disabled' : '';
   let h = '';
   if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
@@ -291,14 +293,21 @@ function listView(dis) {
     if (filtering && !vis.length) return;
     shown++;
     const cb = Number(c.budget) || 0;
-    const opened = filtering || catOpen(cid, c);
+    const opened = filtering || catOpen(cid, c), pack = isPack(cid);
     h += `<section class="cat" aria-labelledby="h-${esc(cid)}">
       <div class="cat-head" data-act="fold" data-id="${esc(cid)}" role="button" tabindex="0" aria-expanded="${opened}" aria-label="${esc(c.name)}: ${opened ? 'скрий' : 'покажи'} списъка">
         <div style="display:flex;align-items:center;gap:6px;min-width:0"><span class="fold-ic" aria-hidden="true">▾</span><h2 id="h-${esc(cid)}">${esc(c.name)}</h2><button class="iconbtn" data-act="catmenu" data-id="${esc(cid)}" aria-label="Настройки на категорията" aria-expanded="${S.catMenu === cid}">⋯</button></div>
-        <div class="cat-meta num">${cs.b + cs.o}/${cs.n} · ${money(cs.spent)}${cb ? ' от ' + money(cb) : ''}${cs.so ? `<br>купени ${money(cs.sb)} · поръчани ${money(cs.so)}` : ''}</div>
-        ${bar(cs.b, cs.o, cs.n)}
+        ${pack ? `<div class="cat-meta num">${cs.b}/${cs.n} взети</div>
+        <div class="bar" role="img" aria-label="Взети ${cs.b} от ${cs.n}"><span class="b" style="width:${pct(cs.b, cs.n)}%"></span></div>` : `<div class="cat-meta num">${cs.b + cs.o}/${cs.n} · ${money(cs.spent)}${cb ? ' от ' + money(cb) : ''}${cs.so ? `<br>купени ${money(cs.sb)} · поръчани ${money(cs.so)}` : ''}</div>
+        ${bar(cs.b, cs.o, cs.n)}`}
       </div>`;
     if (S.catMenu === cid) {
+      if (pack) h += `<div class="catmenu">
+        <label class="f">Име<input id="cn-${esc(cid)}" data-cat="${esc(cid)}" data-cf="name" value="${esc(c.name)}"${dis}></label>
+        <div class="edit-foot"><div style="display:flex;gap:6px"><button class="btn" data-act="catmove" data-id="${esc(cid)}" data-d="-1"${idx === 0 ? ' disabled' : ''}${dis}>↑ По-горе</button><button class="btn" data-act="catmove" data-id="${esc(cid)}" data-d="1"${idx === cats.length - 1 ? ' disabled' : ''}${dis}>↓ По-долу</button></div>
+        <button class="btn danger${S.armed === 'cat:' + cid ? ' armed' : ''}" data-act="catdel" data-id="${esc(cid)}"${dis}>${S.armed === 'cat:' + cid ? (its.length ? `Да, изтрий и ${its.length} неща` : 'Да, изтрий') : 'Изтрий категорията'}</button></div>
+      </div>`;
+      else
       h += `<div class="catmenu">
         <div class="row2"><label class="f">Име<input id="cn-${esc(cid)}" data-cat="${esc(cid)}" data-cf="name" value="${esc(c.name)}"${dis}></label>
         <label class="f">Бюджет за категорията, €<input id="cb-${esc(cid)}" data-cat="${esc(cid)}" data-cf="budget" inputmode="decimal" value="${cb || ''}" placeholder="по желание"${dis}></label></div>
@@ -310,7 +319,7 @@ function listView(dis) {
     h += `<div class="list">`;
     if (!vis.length) h += `<div class="empty-cat">Още няма нищо тук.</div>`;
     vis.forEach(([id, it]) => { h += itemHtml(id, it, dis); });
-    if (!S.readOnly) h += `<form class="add" data-act="additem" data-cat="${esc(cid)}"><input id="add-${esc(cid)}" placeholder="Добави нещо в „${esc(c.name)}“…" aria-label="Ново нещо в ${esc(c.name)}"><button class="btn" type="submit">Добави</button></form>`;
+    if (!S.readOnly) h += `<form class="add" data-act="additem" data-cat="${esc(cid)}"><input id="add-${esc(cid)}" placeholder="${pack ? 'Добави нещо за взимане…' : `Добави нещо в „${esc(c.name)}“…`}" aria-label="Ново нещо в ${esc(c.name)}"><button class="btn" type="submit">Добави</button></form>`;
     h += `</div></section>`;
   });
   if (filtering && !shown) h += `<div class="card state">Нищо не отговаря на филтъра.</div>`;
@@ -319,6 +328,7 @@ function listView(dis) {
 }
 
 function itemHtml(id, it, dis) {
+  if (isPack(it.cat)) return packHtml(id, it, dis);
   const s = status(it), open = S.open.has(id), store = (it.store || '').trim();
   let tags = '';
   if (s === 'ordered') tags += `<span class="tag t-wait">Поръчано${store ? ' · ' + esc(store) : ''}</span>`;
@@ -357,6 +367,35 @@ function itemHtml(id, it, dis) {
   return h + `</div>`;
 }
 
+function packHtml(id, it, dis) {
+  const open = S.open.has(id);
+  let tags = '';
+  if (it.priority) tags += `<span class="tag t-hi">Важно</span>`;
+  if (it.maybe) tags += `<span class="tag t-maybe">Под въпрос</span>`;
+  if (it.gift) tags += `<span class="tag">Подарък от ${esc(it.gift)}</span>`;
+  let h = `<div class="item${it.bought ? ' is-bought' : ''}">
+    <div class="item-row">
+      <input type="checkbox" class="check" id="chk-${esc(id)}" data-act="bought" data-id="${esc(id)}" ${it.bought ? 'checked' : ''} aria-label="Взето: ${esc(it.name)}"${dis}>
+      <button class="item-main" data-act="toggle" data-id="${esc(id)}" aria-expanded="${open}">
+        <span class="item-name">${esc(it.name)}</span>
+        ${it.notes ? `<span class="item-note">${esc(it.notes)}</span>` : ''}
+        ${tags ? `<span class="tags">${tags}</span>` : ''}
+      </button>
+      <span></span>
+    </div>`;
+  if (open) {
+    h += `<div class="edit">
+      <label class="f">Име<input id="f-name-${esc(id)}" data-id="${esc(id)}" data-f="name" value="${esc(it.name)}"${dis}></label>
+      <label class="f">Бележки<textarea id="f-notes-${esc(id)}" data-id="${esc(id)}" data-f="notes" placeholder="колко броя, къде е, кой ще го донесе…"${dis}>${esc(it.notes)}</textarea></label>
+      <div class="row2"><label class="f">Категория<select id="f-cat-${esc(id)}" data-id="${esc(id)}" data-f="cat"${dis}>${catsSorted().map(([cid, c]) => `<option value="${esc(cid)}"${cid === it.cat ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>
+      <div class="f">Отметки<div class="toggles"><button class="chipbtn" data-act="flag" data-f="priority" data-id="${esc(id)}" aria-pressed="${!!it.priority}"${dis}>Важно</button><button class="chipbtn" data-act="flag" data-f="maybe" data-id="${esc(id)}" aria-pressed="${!!it.maybe}"${dis}>Под въпрос</button></div></div></div>
+      <div class="edit-foot"><button class="btn" data-act="toggle" data-id="${esc(id)}">Готово</button>
+      <button class="btn danger${S.armed === 'item:' + id ? ' armed' : ''}" data-act="delitem" data-id="${esc(id)}"${dis}>${S.armed === 'item:' + id ? 'Да, изтрий' : 'Изтрий'}</button></div>
+    </div>`;
+  }
+  return h + `</div>`;
+}
+
 function budgetView(all, st, budget, dis) {
   const left = budget - st.spent - st.planned;
   let h = `<section class="card" style="display:grid;gap:14px">
@@ -375,7 +414,7 @@ function budgetView(all, st, budget, dis) {
   </section>`;
   h += `<section class="card"><h3 style="margin-bottom:8px">По категории</h3><div class="tbl-wrap"><table>
     <thead><tr><th>Категория</th><th>Взети</th><th>Купени</th><th>Поръчани</th><th>Общо</th><th>Предстои</th><th>Бюджет</th></tr></thead><tbody>`;
-  catsSorted().forEach(([cid, c]) => {
+  catsSorted().filter(([cid]) => !isPack(cid)).forEach(([cid, c]) => {
     const cs = stats(itemsOf(cid).map(x => x[1])), cb = Number(c.budget) || 0;
     h += `<tr><td>${esc(c.name)}</td><td>${cs.b + cs.o}/${cs.n}</td><td>${money(cs.sb)}</td><td>${money(cs.so)}</td><td>${money(cs.spent)}</td><td>${cs.planned ? money(cs.planned) : '–'}</td><td class="${cb && cs.spent + cs.planned > cb ? 'over' : ''}">${cb ? money(cb) : '–'}</td></tr>`;
   });
