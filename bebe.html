@@ -73,6 +73,10 @@ button { cursor: pointer }
 .cat-head h2 { font-size: 1.35rem }
 .cat-meta { font-size: .85rem; color: var(--muted); text-align: right }
 .cat-head .bar { grid-column: 1 / -1; height: 5px }
+.cat-head[data-act="fold"] { cursor: pointer; border-radius: 8px; -webkit-tap-highlight-color: transparent }
+.cat-head[data-act="fold"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px }
+.fold-ic { color: var(--muted); font-size: .9rem; transition: transform .15s; display: inline-block }
+.cat-head[aria-expanded="false"] .fold-ic { transform: rotate(-90deg) }
 .iconbtn { border: 1px solid transparent; background: none; border-radius: 8px; padding: 2px 8px; color: var(--muted); font-size: 1.1rem; line-height: 1 }
 .iconbtn:hover { border-color: var(--line) }
 .catmenu { display: grid; gap: 10px; background: var(--accent-soft); border-radius: var(--r); padding: 12px }
@@ -162,6 +166,10 @@ const S = { cats: {}, items: {}, settings: { budget: 0 }, got: { c: false, i: fa
   view: 'list', filter: 'all', q: '', open: new Set(), armed: null, catMenu: null, dirty: false };
 let db = null;
 try { const v = localStorage.getItem('bebka-view'); if (v === 'budget' || v === 'list') S.view = v; } catch (e) {}
+/* Collapsible categories: the choice is remembered per category; „За болницата“ starts closed, the rest open */
+S.fold = {};
+try { S.fold = JSON.parse(localStorage.getItem('bebka-fold') || '{}') || {}; } catch (e) {}
+function catOpen(cid, c) { return cid in S.fold ? !!S.fold[cid] : !/болниц/i.test(c.name || ''); }
 
 const root = document.getElementById('root');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -283,9 +291,10 @@ function listView(dis) {
     if (filtering && !vis.length) return;
     shown++;
     const cb = Number(c.budget) || 0;
+    const opened = filtering || catOpen(cid, c);
     h += `<section class="cat" aria-labelledby="h-${esc(cid)}">
-      <div class="cat-head">
-        <div style="display:flex;align-items:center;gap:6px;min-width:0"><h2 id="h-${esc(cid)}">${esc(c.name)}</h2><button class="iconbtn" data-act="catmenu" data-id="${esc(cid)}" aria-label="Настройки на категорията" aria-expanded="${S.catMenu === cid}">⋯</button></div>
+      <div class="cat-head" data-act="fold" data-id="${esc(cid)}" role="button" tabindex="0" aria-expanded="${opened}" aria-label="${esc(c.name)}: ${opened ? 'скрий' : 'покажи'} списъка">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0"><span class="fold-ic" aria-hidden="true">▾</span><h2 id="h-${esc(cid)}">${esc(c.name)}</h2><button class="iconbtn" data-act="catmenu" data-id="${esc(cid)}" aria-label="Настройки на категорията" aria-expanded="${S.catMenu === cid}">⋯</button></div>
         <div class="cat-meta num">${cs.b + cs.o}/${cs.n} · ${money(cs.spent)}${cb ? ' от ' + money(cb) : ''}${cs.so ? `<br>купени ${money(cs.sb)} · поръчани ${money(cs.so)}` : ''}</div>
         ${bar(cs.b, cs.o, cs.n)}
       </div>`;
@@ -297,6 +306,7 @@ function listView(dis) {
         <button class="btn danger${S.armed === 'cat:' + cid ? ' armed' : ''}" data-act="catdel" data-id="${esc(cid)}"${dis}>${S.armed === 'cat:' + cid ? (its.length ? `Да, изтрий и ${its.length} неща` : 'Да, изтрий') : 'Изтрий категорията'}</button></div>
       </div>`;
     }
+    if (!opened) { h += `</section>`; return; }
     h += `<div class="list">`;
     if (!vis.length) h += `<div class="empty-cat">Още няма нищо тук.</div>`;
     vis.forEach(([id, it]) => { h += itemHtml(id, it, dis); });
@@ -395,6 +405,7 @@ root.addEventListener('click', e => {
     if (S.armed === 'item:' + id) { S.armed = null; S.open.delete(id); const name = S.items[id].name; delete S.items[id]; remove('items', id); toast('Изтрито: ' + name); }
     else S.armed = 'item:' + id;
   }
+  else if (act === 'fold') { S.fold[id] = !catOpen(id, S.cats[id] || {}); try { localStorage.setItem('bebka-fold', JSON.stringify(S.fold)); } catch (err) {} }
   else if (act === 'catmenu') S.catMenu = S.catMenu === id ? null : id;
   else if (act === 'catmove') {
     const cats = catsSorted(), i = cats.findIndex(c => c[0] === id), j = i + Number(b.dataset.d);
@@ -405,6 +416,9 @@ root.addEventListener('click', e => {
     else S.armed = 'cat:' + id;
   }
   render();
+});
+root.addEventListener('keydown', e => {
+  const t = e.target; if (t.dataset && t.dataset.act === 'fold' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); }
 });
 root.addEventListener('change', e => {
   const t = e.target;
