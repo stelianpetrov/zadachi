@@ -40,6 +40,9 @@
   <span class="sep"></span>
   <button id="openAll">Отвори всички</button>
   <span class="sep"></span>
+  <button id="tone">Цвят: Грейдж (v3)</button>
+  <button id="fabric">Дамаска: Пясък</button>
+  <span class="sep"></span>
   <button data-mode="day">Ден</button>
   <button data-mode="evening" class="on">Вечер</button>
 </div>
@@ -895,7 +898,42 @@ addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; cam
 setMode('evening');
 setView('overview', true);
 frame();
-window.__api = { ui: v => { for (const id of ['bar', 'hint']) document.getElementById(id).style.display = v ? '' : 'none'; }, setView, setMode, openAll, eye, checkOverlaps, ready: true };
+// v6: wardrobe colour options (fronts + side panels)
+const TONES = [
+  ['Грейдж (v3)', null],
+  ['Светъл орех', '#a07a5b', '#62442d', 70],
+  ['Меден дъб', '#bb8d5f', '#7d5634', 80],
+  ['Натурален дъб', '#cdab82', '#93704a', 90],
+  ['Мока, мат', '#a58e78', '#7a644f', 25],
+  ['Кашмир, мат', '#c4b29c', '#9e8b74', 18],
+  ['Орех (v5)', '#7f5f48', '#46301f', 70],
+];
+const toneTex = TONES.map(() => null);
+let tone = 0;
+function setTone(i) {
+  tone = ((i % TONES.length) + TONES.length) % TONES.length;
+  const [n, b, d, k] = TONES[tone];
+  if (b === null) { MX.taupe.map = null; MX.taupe.color.set(0xb8ab9b); MX.taupe.roughness = 0.72; }
+  else { if (!toneTex[tone]) toneTex[tone] = woodTex(b, d, k); MX.taupe.map = toneTex[tone]; MX.taupe.color.set(0xffffff); MX.taupe.roughness = k < 40 ? 0.8 : 0.6; }
+  MX.taupe.needsUpdate = true;
+  document.getElementById('tone').textContent = 'Цвят: ' + n;
+  mirrorsDirty = true;
+}
+document.getElementById('tone').onclick = () => setTone(tone + 1);
+setTone(0);
+// upholstery of the bench cushion
+const FABRICS = [['Пясък', '#cbbfae'], ['Букле крем', '#e6dfd2'], ['Таупе', '#9c8b78'], ['Маслина', '#7b7f55'], ['Теракота', '#b0664a'], ['Графит', '#5a5856']];
+const fabTex = FABRICS.map(() => null);
+let fab = 0;
+function setFabric(i) {
+  fab = ((i % FABRICS.length) + FABRICS.length) % FABRICS.length;
+  if (!fabTex[fab]) fabTex[fab] = fabricTex(FABRICS[fab][1]);
+  MX.fabric.map = fabTex[fab]; MX.fabric.needsUpdate = true;
+  document.getElementById('fabric').textContent = 'Дамаска: ' + FABRICS[fab][0];
+  mirrorsDirty = true;
+}
+document.getElementById('fabric').onclick = () => setFabric(fab + 1);
+window.__api = { setTone, setFabric, ui: v => { for (const id of ['bar', 'hint']) document.getElementById(id).style.display = v ? '' : 'none'; }, setView, setMode, openAll, eye, checkOverlaps, ready: true };
 </script>
 </body>
 </html>
