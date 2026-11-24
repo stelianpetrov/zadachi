@@ -170,10 +170,10 @@ body.selecting .wrap { padding-bottom: 96px }
    gshop/<id> {week, key, done} for ticked list items, or {week, name, extra: true, done} for added ones */
 const KEYS = { recipes: 'rec', meals: 'meals', gshop: 'shop' };
 const S = { rec: {}, meals: {}, shop: {}, got: {}, noDb: false, readOnly: false,
-  tab: 'plan', week: '', open: new Set(), sel: null, armed: null, dirty: false, pick: null, shopOpen: null, pq: '', rq: '', rcat: '', rflag: '' };
+  tab: 'rec', week: '', open: new Set(), sel: null, armed: null, dirty: false, pick: null, shopOpen: null, pq: '', rq: '', rcat: '', rflag: '' };
 const LOCAL = { recipes: {}, meals: {}, gshop: {} };
 let db = null;
-try { const v = localStorage.getItem('zad-cook-tab'); if (['plan', 'shop', 'rec'].includes(v)) S.tab = v; } catch (e) {}
+try { const v = localStorage.getItem('zad-cook-tab2'); if (['plan', 'shop', 'rec'].includes(v)) S.tab = v; } catch (e) {}
 
 const root = document.getElementById('root');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -333,7 +333,7 @@ function render() {
   const dis = S.readOnly ? ' disabled' : '';
   let h = '';
   if (S.readOnly) h += `<div class="banner">Промените не се записват. Излез и влез отново.</div>`;
-  h += `<div class="tabs" role="group" aria-label="Изглед">${[['plan', 'План'], ['shop', 'Пазаруване'], ['rec', 'Рецептурник']].map(([k, l]) => `<button data-act="tab" data-v="${k}" aria-pressed="${S.tab === k}">${l}</button>`).join('')}</div>`;
+  h += `<div class="tabs" role="group" aria-label="Изглед">${[['rec', 'Рецептурник'], ['plan', 'План'], ['shop', 'Пазаруване']].map(([k, l]) => `<button data-act="tab" data-v="${k}" aria-pressed="${S.tab === k}">${l}</button>`).join('')}</div>`;
   if (S.tab === 'rec') h += recView(dis);
   else if (S.tab === 'shop') h += shopAll(dis);
   else {
@@ -503,7 +503,7 @@ root.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM' || ((b.tagName === 'INPUT' || b.tagName === 'SELECT') && !['pick', 'pickday'].includes(b.dataset.act))) return;
   const act = b.dataset.act, id = b.dataset.id;
   if (!['delmeal', 'delrec', 'seldel'].includes(act)) S.armed = null;
-  if (act === 'tab') { S.tab = b.dataset.v; S.sel = null; S.open.clear(); S.pick = null; try { localStorage.setItem('zad-cook-tab', S.tab); } catch (err) {} }
+  if (act === 'tab') { S.tab = b.dataset.v; S.sel = null; S.open.clear(); S.pick = null; try { localStorage.setItem('zad-cook-tab2', S.tab); } catch (err) {} }
   else if (act === 'week') { S.week = b.dataset.v; S.open.clear(); S.sel = null; S.pick = null; }
   else if (act === 'newweek') { const ws = allWeeks(), t = weekOf(today()); const w = ws.length ? (ws[ws.length - 1] < t ? t : addDays(ws[ws.length - 1], 7)) : t;
     planWeek(w); S.week = w; S.open.clear(); toast('Нова седмица: ' + weekLabel(w) + '. Смени каквото не ти харесва.'); }
