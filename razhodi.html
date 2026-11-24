@@ -205,7 +205,7 @@ const amt = x => Number(x.amount) || 0;
 const byOrder = (a, b) => (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg');
 /* months in the past with no expenses and no events are hidden (e.g. Ноември 2026, removed 2026-11-24 at Stelian's request) */
 const allMonths = () => { const t = thisMonth(), used = new Set([...Object.values(S.exp).map(x => x.month), ...Object.values(S.ev).map(x => x.month)].filter(Boolean));
-  return [...new Set([...Object.keys(S.months), ...used])].filter(m => m >= t || used.has(m)).sort(); };
+  return [...new Set([...Object.keys(S.months), ...used])].filter(m => (m >= t && m !== '2026-11') || used.has(m)).sort(); };
 const rowsOf = m => Object.entries(S.exp).filter(([, x]) => x.month === m).sort(byOrder);
 // display order: paid rows sink to the bottom, keeping their relative order
 const viewRows = m => rowsOf(m).sort((a, b) => !!a[1].paid - !!b[1].paid);
