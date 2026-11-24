@@ -203,7 +203,9 @@ const mName = m => { const [y, mm] = m.split('-').map(Number); return cap(ML[mm 
 const mNameFull = m => { const [y, mm] = m.split('-').map(Number); return cap(ML[mm - 1]) + ' ' + y; };
 const amt = x => Number(x.amount) || 0;
 const byOrder = (a, b) => (a[1].order ?? 0) - (b[1].order ?? 0) || String(a[1].name).localeCompare(b[1].name, 'bg');
-const allMonths = () => [...new Set([...Object.keys(S.months), ...Object.values(S.exp).map(x => x.month), ...Object.values(S.ev).map(x => x.month)].filter(Boolean))].sort();
+/* months in the past with no expenses and no events are hidden (e.g. Ноември 2026, removed 2026-11-24 at Stelian's request) */
+const allMonths = () => { const t = thisMonth(), used = new Set([...Object.values(S.exp).map(x => x.month), ...Object.values(S.ev).map(x => x.month)].filter(Boolean));
+  return [...new Set([...Object.keys(S.months), ...used])].filter(m => m >= t || used.has(m)).sort(); };
 const rowsOf = m => Object.entries(S.exp).filter(([, x]) => x.month === m).sort(byOrder);
 // display order: paid rows sink to the bottom, keeping their relative order
 const viewRows = m => rowsOf(m).sort((a, b) => !!a[1].paid - !!b[1].paid);
@@ -497,7 +499,24 @@ setInterval(() => { if (ready() && !typing()) render(); }, 60000);
     S[KEYS[col]] = m; S.got[col] = 1; schedule();
   }, fail));
   oneTimeJan2027();
+  dropNov2026();
 })();
+
+/* one-time cleanup (2026-11-24, asked by Stelian): delete the empty November 2026 month doc
+   (backup: apps/backups/razhodi-november-2026-backup-2026-11-24.json). Only deletes it when it has no rows. */
+async function dropNov2026() {
+  const sb = window.zadSb; if (!sb) return;
+  try { if (localStorage.getItem('zad-mig-2611del') === 'done') return; } catch (e) {}
+  try {
+    const rows = await sb.from('docs').select('id,data').in('col', ['mexp', 'mevents']).limit(10000);
+    if (rows.error) return;
+    if (!rows.data.some(r => r.data && r.data.month === '2026-11')) {
+      const del = await sb.from('docs').delete().eq('col', 'months').eq('id', '2026-11');
+      if (del.error) return;
+    }
+    try { localStorage.setItem('zad-mig-2611del', 'done'); } catch (e) {}
+  } catch (e) {}
+}
 
 /* one-time data change (2026-11-20, asked by Stelian): drop the past November events and start
    January 2027 as a copy of December's rows. Runs against the server with the signed-in session;
