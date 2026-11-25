@@ -41,7 +41,6 @@
   <button id="openAll">Отвори всички</button>
   <span class="sep"></span>
   <button id="tone">Цвят: Грейдж (v3)</button>
-  <button id="fabric">Дамаска: Пясък</button>
   <span class="sep"></span>
   <button data-mode="day">Ден</button>
   <button data-mode="evening" class="on">Вечер</button>
@@ -921,19 +920,7 @@ function setTone(i) {
 }
 document.getElementById('tone').onclick = () => setTone(tone + 1);
 setTone(0);
-// upholstery of the bench cushion
-const FABRICS = [['Пясък', '#cbbfae'], ['Букле крем', '#e6dfd2'], ['Таупе', '#9c8b78'], ['Маслина', '#7b7f55'], ['Теракота', '#b0664a'], ['Графит', '#5a5856']];
-const fabTex = FABRICS.map(() => null);
-let fab = 0;
-function setFabric(i) {
-  fab = ((i % FABRICS.length) + FABRICS.length) % FABRICS.length;
-  if (!fabTex[fab]) fabTex[fab] = fabricTex(FABRICS[fab][1]);
-  MX.fabric.map = fabTex[fab]; MX.fabric.needsUpdate = true;
-  document.getElementById('fabric').textContent = 'Дамаска: ' + FABRICS[fab][0];
-  mirrorsDirty = true;
-}
-document.getElementById('fabric').onclick = () => setFabric(fab + 1);
-window.__api = { setTone, setFabric, ui: v => { for (const id of ['bar', 'hint']) document.getElementById(id).style.display = v ? '' : 'none'; }, setView, setMode, openAll, eye, checkOverlaps, ready: true };
+window.__api = { setTone, ui: v => { for (const id of ['bar', 'hint']) document.getElementById(id).style.display = v ? '' : 'none'; }, setView, setMode, openAll, eye, checkOverlaps, ready: true };
 </script>
 </body>
 </html>
