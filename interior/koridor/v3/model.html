@@ -615,9 +615,10 @@ scDoors.forEach(r => owner.set(r, 'шкафчето под огледалото'
 { const p = new THREE.PointLight(0xffc27a, 0.2, 0.9, 2); p.position.set(cx, 0.15, 0.25); scene.add(p); extraLights.push([p, 0.0, 0.2]); }
 const ovalMirror = mirrorMat(cx, 1.58, 0.35);
 const OW = unit(cx, 0, 0, walls.N);
-oval(OW, 0.5, 0.95, 0.006, MX.ledStrip, 0.006);
-oval(OW, 0.462, 0.912, 0.016, MX.matteBlack, 0.012);
-ovalMirror.meshes.push(oval(OW, 0.45, 0.90, 0.024, ovalMirror.mat, 0.004));
+// rectangular mirror 50 x 90 with a black frame and an LED halo behind it
+box(-0.25, 0.25, 1.13, 2.03, 0.0, 0.006, MX.ledStrip, { parent: OW, noHit: true, cast: false });
+box(-0.24, 0.24, 1.14, 2.02, 0.006, 0.026, MX.matteBlack, { parent: OW, noHit: true });
+ovalMirror.meshes.push(box(-0.225, 0.225, 1.155, 2.005, 0.026, 0.03, ovalMirror.mat, { parent: OW, noHit: true, cast: false }));
 for (const sx of [-0.36, 0.36]) {
   box(sx - 0.02, sx + 0.02, 1.60, 1.66, 0, 0.05, MX.matteBlack, { parent: OW, noHit: true, cast: false });
   cyl(sx, 0.085, 1.54, 1.72, 0.035, MX.matteBlack, { parent: OW, noHit: true });
