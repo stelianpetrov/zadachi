@@ -42,15 +42,15 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
 <div id="stage" aria-label="3D визуализация на детската стая"></div>
 <div class="card">
   <h1>Детска стая</h1>
-  <p>Кошара-легло 70 × 140, скрин с повивалник, гардероб, люлеещ се стол за кърмене, пейка под прозореца и рафт за играчки. ≈ 285 × 430 см, таван 270 см.</p>
+  <p>Кошара-легло 70 × 140, скрин с повивалник, гардероб, люлеещ се стол за кърмене до прозорците, кът за четене и рафт за играчки. Вратата срещу прозорците е към терасата. ≈ 285 × 430 см, таван 270 см.</p>
 </div>
 <div class="hint">Влачи за завъртане, скрол или щипване за приближаване</div>
 <div class="bar">
   <div class="group" role="group" aria-label="Гледна точка">
     <button type="button" data-view="overview" aria-pressed="true">Общ изглед</button>
     <button type="button" data-view="entry" aria-pressed="false">От входа</button>
-    <button type="button" data-view="door2" aria-pressed="false">От втората врата</button>
-    <button type="button" data-view="window" aria-pressed="false">От прозореца</button>
+    <button type="button" data-view="door2" aria-pressed="false">От терасата</button>
+    <button type="button" data-view="window" aria-pressed="false">От прозорците</button>
     <button type="button" data-view="crib" aria-pressed="false">Кошарата</button>
     <button type="button" data-view="top" aria-pressed="false">Отгоре</button>
   </div>
@@ -170,13 +170,14 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   Object.keys(walls).forEach(function(k){wallMats[k]=M.wall.clone();scene.add(walls[k]);});
   function wb(side,x1,x2,y1,y2,z1,z2){box(x1,x2,y1,y2,z1,z2,wallMats[side],{parent:walls[side]});}
   var DH=2.05;
-  // North wall: door 186,5 → 275 (88,5 cm)
-  wb('N',-T,1.865,0,H,-T,0);wb('N',1.865,2.75,DH,H,-T,0);wb('N',2.75,W+T,0,H,-T,0);
-  // West wall (to the terrace): window 125 → 305, sill 85
-  wb('Wt',-T,0,0,H,0,1.25);wb('Wt',-T,0,0,0.85,1.25,3.05);wb('Wt',-T,0,2.4,H,1.25,3.05);wb('Wt',-T,0,0,H,3.05,D);
-  // South wall
-  wb('S',-T,W+T,0,H,D,D+T);
-  // East wall with the 15,5 cm step; second door 357,5 → 426
+  // North wall: balcony door to the terrace 186,5 → 275 (88,5 cm)
+  wb('N',-T,1.865,0,H,-T,0);wb('N',1.865,2.75,DH+0.15,H,-T,0);wb('N',2.75,W+T,0,H,-T,0);
+  // West wall (plain)
+  wb('Wt',-T,0,0,H,0,D);
+  // South wall: windows 35 → 215, sill 85
+  var WN1=0.35,WN2=2.15;
+  wb('S',-T,WN1,0,H,D,D+T);wb('S',WN1,WN2,0,0.85,D,D+T);wb('S',WN1,WN2,2.4,H,D,D+T);wb('S',WN2,W+T,0,H,D,D+T);
+  // East wall with the 15,5 cm step; entrance door 357,5 → 426
   wb('E',W,W+T,0,H,-T,STEPZ);
   wb('E',WX,W+T,0,H,STEPZ,3.575);wb('E',WX,W+T,DH,H,3.575,4.26);wb('E',WX,W+T,0,H,4.26,D+T);
   var ceilMat=M.ceiling.clone();
@@ -184,69 +185,74 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   // skirting
   box(0,1.865,0,0.07,0,0.012,M.white,{cast:false});box(0,0.012,0,0.07,0,D,M.white,{cast:false});box(0,WX,0,0.07,D-0.012,D,M.white,{cast:false});
 
-  // Doors (closed leaves, light oak) + frames
-  box(1.865,2.75,0,DH,-0.1,-0.06,M.oak,{parent:walls.N});box(1.93,2.0,0.99,1.01,-0.05,-0.02,M.brass,{parent:walls.N});
-  box(1.84,1.865,0,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});box(2.75,2.775,0,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});box(1.84,2.775,DH,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});
+  // Balcony door (glazed, white frame)
+  var BDH=DH+0.15;
+  box(1.865,2.75,BDH-0.001,BDH,-T,0,M.white,{parent:walls.N,cast:false});
+  box(1.865,2.75,0.12,BDH-0.08,-0.1,-0.09,glass,{parent:walls.N,cast:false});
+  [[1.865,1.93,0,BDH],[2.685,2.75,0,BDH],[1.865,2.75,BDH-0.08,BDH],[1.865,2.75,0,0.12]].forEach(function(a){box(a[0],a[1],a[2],a[3],-0.12,-0.06,M.frame,{parent:walls.N});});
+  box(2.62,2.65,0.98,1.12,-0.06,-0.03,M.brass,{parent:walls.N});
+  // terrace railing outside
+  box(1.2,4.0,0.96,1.0,-1.6,-1.56,M.black);for(var rx=1.2;rx<=4.0;rx+=0.12)box(rx,rx+0.015,0,0.96,-1.59,-1.57,M.black);
+  // Entrance door (light oak) + frame
   box(WX+0.06,WX+0.1,0,DH,3.575,4.26,M.oak,{parent:walls.E});box(WX+0.02,WX+0.05,0.99,1.01,3.64,3.71,M.brass,{parent:walls.E});
   box(WX-0.01,WX+0.02,0,DH+0.03,3.55,3.575,M.white,{parent:walls.E});box(WX-0.01,WX+0.02,0,DH+0.03,4.26,4.285,M.white,{parent:walls.E});box(WX-0.01,WX+0.02,DH,DH+0.03,3.55,4.285,M.white,{parent:walls.E});
 
-  // Window (terrace side)
-  box(-T,0,0.83,0.85,1.23,3.07,M.white,{cast:false});
-  box(-0.12,-0.1,0.85,2.4,1.25,3.05,glass,{cast:false});
-  [[1.25,1.30],[3.0,3.05],[2.125,2.175]].forEach(function(a){box(-0.14,-0.06,0.85,2.4,a[0],a[1],M.frame);});
-  [[0.85,0.9],[2.35,2.4]].forEach(function(a){box(-0.14,-0.06,a[0],a[1],1.25,3.05,M.frame);});
-  box(-0.02,0.04,0.83,0.86,1.22,3.08,M.white);
-  // terrace railing outside
-  box(-1.4,-1.36,0.96,1.0,0.6,3.7,M.black);for(var rz=0.6;rz<=3.7;rz+=0.12)box(-1.39,-1.37,0,0.96,rz,rz+0.015,M.black);
-
+  // Windows (south wall, two sashes)
+  box(WN1-0.02,WN2+0.02,0.83,0.86,D-0.04,D+0.04,M.white,{parent:walls.S});
+  box(WN1,WN2,0.85,2.4,D+0.1,D+0.12,glass,{parent:walls.S,cast:false});
+  [[WN1,WN1+0.05],[WN2-0.05,WN2],[(WN1+WN2)/2-0.025,(WN1+WN2)/2+0.025]].forEach(function(a){box(a[0],a[1],0.85,2.4,D+0.06,D+0.14,M.frame,{parent:walls.S});});
+  [[0.85,0.9],[2.35,2.4]].forEach(function(a){box(WN1,WN2,a[0],a[1],D+0.06,D+0.14,M.frame,{parent:walls.S});});
+  // radiator under the window
+  box(0.7,1.8,0.15,0.7,D-0.1,D-0.04,M.white,{parent:walls.S});
   // Curtains (linen + sheer)
   var curtainObjs=[];
-  curtainObjs.push(box(0.06,0.08,2.5,2.53,1.0,3.3,M.brass,{cast:false}));
-  function curtain(z1,z2,mat,n){var w=(z2-z1)/n;for(var i=0;i<n;i++){var x=0.08+(i%2)*0.025;curtainObjs.push(box(x,x+0.012,0.47,2.5,z1+i*w,z1+(i+1)*w+0.01,mat,{cast:mat!==M.sheer}));}}
-  curtain(1.0,1.36,M.linen,6);curtain(1.36,1.75,M.sheer,7);curtain(2.55,2.94,M.sheer,7);curtain(2.94,3.3,M.linen,6);
+  curtainObjs.push(box(0.1,2.4,2.5,2.53,D-0.08,D-0.06,M.brass,{cast:false}));
+  function curtain(x1,x2,mat,n){var w=(x2-x1)/n;for(var i=0;i<n;i++){var z=D-0.1-(i%2)*0.025;curtainObjs.push(box(x1+i*w,x1+(i+1)*w+0.01,0.47,2.5,z-0.012,z,mat,{cast:mat!==M.sheer}));}}
+  curtain(0.1,0.42,M.linen,6);curtain(0.42,0.85,M.sheer,7);curtain(1.65,2.08,M.sheer,7);curtain(2.08,2.4,M.linen,6);
 
-  // ---------- Painted sage arch behind the crib ----------
+  // ---------- Painted sage arch behind the crib (west wall) ----------
+  var CZ=2.175;
   var arch=new THREE.Mesh(new THREE.CircleGeometry(0.78,64,0,Math.PI),M.sage);
-  arch.position.set(0.875,1.05,D-0.003);arch.rotation.y=Math.PI;walls.S.add(arch);
-  var archBase=new THREE.Mesh(new THREE.PlaneGeometry(1.56,1.05),M.sage);archBase.position.set(0.875,0.525,D-0.003);archBase.rotation.y=Math.PI;walls.S.add(archBase);
+  arch.position.set(0.003,1.05,CZ);arch.rotation.y=Math.PI/2;walls.Wt.add(arch);
+  var archBase=new THREE.Mesh(new THREE.PlaneGeometry(1.56,1.05),M.sage);archBase.position.set(0.003,0.525,CZ);archBase.rotation.y=Math.PI/2;walls.Wt.add(archBase);
 
-  // ---------- Cot bed 70 × 140 (outer 76 × 145) ----------
-  var cx1=0.15,cx2=1.60,cz1=3.51,cz2=4.27,ch=0.9;
+  // ---------- Cot bed 70 × 140 (outer 76 × 145) along the west wall ----------
+  var cx1=0.03,cx2=0.79,cz1=CZ-0.725,cz2=CZ+0.725,ch=0.9;
   [[cx1,cz1],[cx2-0.045,cz1],[cx1,cz2-0.045],[cx2-0.045,cz2-0.045]].forEach(function(p){box(p[0],p[0]+0.045,0,ch,p[1],p[1]+0.045,M.white);});
-  [cz1,cz2-0.045].forEach(function(z){box(cx1,cx2,ch-0.045,ch,z,z+0.045,M.white);box(cx1,cx2,0.2,0.25,z,z+0.045,M.white);
-    for(var sx=cx1+0.08;sx<cx2-0.06;sx+=0.075){box(sx,sx+0.025,0.25,ch-0.045,z+0.01,z+0.035,M.oak);}});
-  [cx1,cx2-0.045].forEach(function(x){box(x,x+0.045,0.2,ch-0.02,cz1+0.045,cz2-0.045,M.white);});
+  [cx1,cx2-0.045].forEach(function(x){box(x,x+0.045,ch-0.045,ch,cz1,cz2,M.white);box(x,x+0.045,0.2,0.25,cz1,cz2,M.white);
+    for(var sz=cz1+0.08;sz<cz2-0.06;sz+=0.075){box(x+0.01,x+0.035,0.25,ch-0.045,sz,sz+0.025,M.oak);}});
+  [cz1,cz2-0.045].forEach(function(z){box(cx1+0.045,cx2-0.045,0.2,ch-0.02,z,z+0.045,M.white);});
   box(cx1+0.05,cx2-0.05,0.25,0.37,cz1+0.05,cz2-0.05,M.cream);
   box(cx1+0.05,cx2-0.05,0.37,0.38,cz1+0.05,cz2-0.05,std({color:'#f8f5ef',roughness:1}),{cast:false});
-  box(0.85,1.5,0.38,0.42,cz1+0.07,cz2-0.07,M.blush);box(0.85,0.9,0.38,0.45,cz1+0.07,cz2-0.07,M.blush);
+  box(cx1+0.07,cx2-0.07,0.38,0.42,CZ-0.05,cz2-0.08,M.blush);box(cx1+0.07,cx2-0.07,0.38,0.45,CZ-0.05,CZ,M.blush);
   // teddy bear
-  sph(0.42,0.5,3.88,0.09,M.mustard,1,1.1,0.9);sph(0.42,0.64,3.88,0.065,M.mustard);
-  sph(0.42,0.69,3.83,0.025,M.mustard);sph(0.42,0.69,3.93,0.025,M.mustard);
+  sph(0.41,0.5,cz1+0.3,0.09,M.mustard,0.9,1.1,1);sph(0.41,0.64,cz1+0.3,0.065,M.mustard);
+  sph(0.36,0.69,cz1+0.3,0.025,M.mustard);sph(0.46,0.69,cz1+0.3,0.025,M.mustard);
   // mobile
-  cyl(cx2-0.06,cz2-0.02,0.012,ch,1.55,M.oak,12);
-  var arm=box(1.0,cx2-0.05,1.53,1.555,cz2-0.035,cz2-0.01,M.oak);
+  var MX=0.41,MZ=CZ-0.15;
+  cyl(0.05,cz1+0.35,0.012,ch,1.55,M.oak,12);
+  box(0.04,MX,1.53,1.555,cz1+0.34,cz1+0.37,M.oak);box(MX-0.005,MX+0.005,1.53,1.555,cz1+0.35,MZ,M.oak);
   var mob=new THREE.Group();scene.add(mob);
-  var hoop=new THREE.Mesh(new THREE.TorusGeometry(0.16,0.006,8,48),M.oak);hoop.rotation.x=Math.PI/2;hoop.position.set(1.0,1.5,3.89);mob.add(hoop);
-  box(0.995,1.005,1.5,1.55,4.2,4.25,M.oak);box(0.995,1.005,1.545,1.555,3.89,4.25,M.oak);
-  [[M.blush,0],[M.sage,1],[M.mustard,2],[M.cream,3],[M.sky,4]].forEach(function(a){var ang=a[1]/5*6.283,x=1.0+Math.cos(ang)*0.16,z=3.89+Math.sin(ang)*0.16,y=1.25+(a[1]%2)*0.07;
+  var hoop=new THREE.Mesh(new THREE.TorusGeometry(0.16,0.006,8,48),M.oak);hoop.rotation.x=Math.PI/2;hoop.position.set(MX,1.5,MZ);mob.add(hoop);
+  [[M.blush,0],[M.sage,1],[M.mustard,2],[M.cream,3],[M.sky,4]].forEach(function(a){var ang=a[1]/5*6.283,x=MX+Math.cos(ang)*0.16,z=MZ+Math.sin(ang)*0.16,y=1.25+(a[1]%2)*0.07;
     var s=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,1.5-y),M.cream);s.position.set(x,(1.5+y)/2,z);mob.add(s);
     var b=new THREE.Mesh(a[1]%2?new THREE.SphereGeometry(0.035,16,12):new THREE.OctahedronGeometry(0.04),a[0]);b.position.set(x,y,z);b.castShadow=true;mob.add(b);});
 
-  // Nightstand + mushroom night light
-  box(1.66,1.96,0.04,0.5,3.96,4.27,M.white);box(1.68,1.94,0,0.04,3.98,4.25,M.oak);box(1.66,1.96,0.25,0.26,3.955,3.96,M.oakDark,{cast:false});
-  cyl(1.78,4.1,0.025,0.5,0.6,M.cream,16);var shroom=new THREE.Mesh(new THREE.SphereGeometry(0.07,24,12,0,6.283,0,Math.PI/2),paper);shroom.position.set(1.78,0.6,4.1);scene.add(shroom);
-  pl(1.78,0.62,4.0,'#ffcf96',0.25,1.4);
-  box(1.86,1.93,0.5,0.62,4.13,4.17,M.white);
+  // Nightstand + mushroom night light (between crib and rocker)
+  var nz1=cz2+0.06,nz2=nz1+0.32;
+  box(0.03,0.36,0.04,0.5,nz1,nz2,M.white);box(0.05,0.34,0,0.04,nz1+0.02,nz2-0.02,M.oak);box(0.36,0.365,0.25,0.26,nz1,nz2,M.oakDark,{cast:false});
+  cyl(0.18,nz1+0.12,0.025,0.5,0.6,M.cream,16);var shroom=new THREE.Mesh(new THREE.SphereGeometry(0.07,24,12,0,6.283,0,Math.PI/2),paper);shroom.position.set(0.18,0.6,nz1+0.12);scene.add(shroom);
+  pl(0.28,0.62,nz1+0.12,'#ffcf96',0.25,1.4);
+  box(0.12,0.26,0.5,0.62,nz2-0.08,nz2-0.04,M.white);
 
-  // ---------- Changing dresser 100 × 52 with changing pad ----------
+  // ---------- Changing dresser 100 × 52 with changing pad (north wall) ----------
   box(0.80,1.80,0.08,0.9,0,0.52,M.white);box(0.83,1.77,0,0.08,0.03,0.49,M.oak);
   [0.35,0.62].forEach(function(y){box(0.80,1.80,y-0.003,y+0.003,0.52,0.523,M.oakDark,{cast:false});});
   box(1.298,1.302,0.08,0.9,0.52,0.523,M.oakDark,{cast:false});
-  [[1.05,0.22],[1.55,0.22],[1.05,0.49],[1.55,0.49],[1.05,0.76],[1.55,0.76]].forEach(function(p){var k=sph(p[0],p[1],0.535,0.017,M.oak);});
+  [[1.05,0.22],[1.55,0.22],[1.05,0.49],[1.55,0.49],[1.05,0.76],[1.55,0.76]].forEach(function(p){sph(p[0],p[1],0.535,0.017,M.oak);});
   box(0.80,1.80,0.9,0.93,0,0.52,M.oak);
   box(0.84,1.54,0.93,1.02,0.04,0.48,M.sage);box(0.88,1.50,0.93,0.99,0.08,0.44,M.cream);
   box(1.58,1.76,0.93,1.08,0.1,0.38,M.oakDark);box(1.6,1.74,1.08,1.12,0.13,0.35,M.cream);
-  // shelves + prints above the dresser
   box(0.9,1.7,1.5,1.53,0,0.2,M.oak);box(0.9,1.7,1.85,1.88,0,0.2,M.oak);
   var bseed=rnd(4),bm=[M.blush,M.sage,M.mustard,M.sky,M.cream,M.terracotta];
   function books(x0,y,n){var x=x0;for(var i=0;i<n;i++){var w=0.02+bseed()*0.02,h=0.15+bseed()*0.08;box(x,x+w,y,y+h,0.03,0.18,bm[Math.floor(bseed()*bm.length)]);x+=w+0.004;}}
@@ -254,71 +260,69 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   sph(1.05,1.95,0.1,0.07,M.cream);sph(1.05,2.06,0.1,0.05,M.cream);books(1.35,1.88,5);
   [[1.0,2.1,0.24],[1.36,2.12,0.30],[1.6,2.08,0.2]].forEach(function(f,i){box(f[0],f[0]+f[2],f[1],f[1]+f[2]*1.25,0,0.02,M.oak);box(f[0]+0.02,f[0]+f[2]-0.02,f[1]+0.02,f[1]+f[2]*1.25-0.02,0.02,0.022,[M.blush,M.sage,M.sky][i],{cast:false});});
 
-  // ---------- Rocking / nursing chair + pouf + floor lamp ----------
-  var chx1=0.08,chx2=0.74,chz1=0.28,chz2=0.98;
-  [[chz1,chz1+0.04],[chz2-0.04,chz2]].forEach(function(z){var r=new THREE.Mesh(new THREE.TorusGeometry(0.6,0.012,8,40,0.9),M.oak);r.position.set(0.41,0.6,(z[0]+z[1])/2);r.rotation.z=-Math.PI/2-0.45;scene.add(r);});
-  box(chx1+0.05,chx2-0.04,0.18,0.3,chz1+0.02,chz2-0.02,M.oak);
-  box(chx1+0.06,chx2-0.05,0.3,0.46,chz1+0.08,chz2-0.08,M.cream);
-  box(chx1,chx1+0.14,0.3,1.05,chz1+0.04,chz2-0.04,M.cream);
-  [chz1,chz2-0.1].forEach(function(z){box(chx1+0.04,chx2-0.04,0.3,0.62,z,z+0.1,M.cream);});
-  box(chx1+0.14,chx1+0.25,0.46,0.8,chz1+0.25,chz2-0.25,M.blush);
-  cyl(1.0,0.86,0.22,0,0.36,M.sage,32,0.2);
-  cyl(0.16,1.13,0.13,0,0.03,M.black,24);cyl(0.16,1.13,0.012,0.03,1.45,M.black,8);
-  var shade=cyl(0.16,1.13,0.2,1.45,1.68,paper,32,0.14);pl(0.25,1.5,1.13,'#ffd2a0',0.45,2.5);
+  // ---------- Toy shelf (2 × 2 cubes) in the north-west corner ----------
+  var tx1=0,tx2=0.36,tz1=0.12,tz2=0.92;
+  box(tx1,tx2,0,0.8,tz1,tz2,M.oak);
+  [[0.04,0.4],[0.42,0.78]].forEach(function(y,yi){[[tz1+0.03,tz1+0.39],[tz1+0.41,tz2-0.03]].forEach(function(z,zi){
+    box(tx1+0.03,tx2+0.002,y[0],y[1],z[0],z[1],M.white);
+    if((yi+zi)%2===0)box(tx1+0.06,tx2-0.01,y[0]+0.01,y[1]-0.04,z[0]+0.02,z[1]-0.02,[M.sage,M.blush][zi]);
+    else{for(var k=0;k<4;k++)box(tx2-0.08,tx2-0.05,y[0],y[0]+0.18+k*0.02,z[0]+0.04+k*0.06,z[0]+0.08+k*0.06,bm[k]);}
+  });});
+  cyl(0.18,tz1+0.2,0.06,0.8,0.95,M.pot,20,0.05);for(var j=0;j<12;j++)sph(0.18+(bseed()-0.5)*0.15,1.0+bseed()*0.12,tz1+0.2+(bseed()-0.5)*0.15,0.035,M.leaf,1,1.3,0.6);
+  [M.terracotta,M.mustard,M.sage].forEach(function(m,i){var t=new THREE.Mesh(new THREE.TorusGeometry(0.1-i*0.025,0.011,8,24,Math.PI),m);t.position.set(0.18,0.82,tz2-0.2);t.rotation.y=Math.PI/2;t.castShadow=true;scene.add(t);});
 
-  // ---------- Window bench with storage ----------
-  box(0,0.42,0.06,0.42,1.40,2.90,M.oak);box(0.02,0.4,0,0.06,1.42,2.88,M.oakDark);
-  box(0.418,0.422,0.06,0.42,2.145,2.155,M.oakDark,{cast:false});
-  box(0,0.42,0.42,0.5,1.40,2.90,M.sage);
-  [[1.55,M.blush],[1.82,M.cream],[2.6,M.mustard],[2.78,M.cream]].forEach(function(p){var c=box(0.04,0.14,0.5,0.82,p[0]-0.12,p[0]+0.12,p[1]);c.rotation.z=-0.15;});
-  box(0.18,0.34,0.5,0.53,2.15,2.38,M.terracotta);box(0.19,0.33,0.53,0.555,2.17,2.36,M.sky);
+  // ---------- Rocking / nursing chair by the window + floor lamp ----------
+  var chx1=0.08,chx2=0.78,chz1=3.5,chz2=4.2;
+  var rocker=new THREE.Group();scene.add(rocker);
+  function rb(x1,x2,y1,y2,z1,z2,m){var b=box(x1,x2,y1,y2,z1,z2,m,{parent:rocker});return b;}
+  [[chz1,chz1+0.04],[chz2-0.04,chz2]].forEach(function(z){var r=new THREE.Mesh(new THREE.TorusGeometry(0.6,0.012,8,40,0.9),M.oak);r.position.set(0.43,0.6,(z[0]+z[1])/2);r.rotation.z=-Math.PI/2-0.45;rocker.add(r);});
+  rb(chx1+0.05,chx2-0.04,0.18,0.3,chz1+0.02,chz2-0.02,M.oak);
+  rb(chx1+0.06,chx2-0.05,0.3,0.46,chz1+0.08,chz2-0.08,M.cream);
+  rb(chx1,chx1+0.14,0.3,1.05,chz1+0.04,chz2-0.04,M.cream);
+  [chz1,chz2-0.1].forEach(function(z){rb(chx1+0.04,chx2-0.04,0.3,0.62,z,z+0.1,M.cream);});
+  rb(chx1+0.14,chx1+0.25,0.46,0.8,chz1+0.25,chz2-0.25,M.blush);
+  cyl(0.98,3.55,0.2,0,0.34,M.sage,32,0.18);
+  // floor lamp in the corner
+  cyl(0.95,4.12,0.13,0,0.03,M.black,24);cyl(0.95,4.12,0.012,0.03,1.45,M.black,8);
+  cyl(0.95,4.12,0.2,1.45,1.68,paper,32,0.14);pl(0.95,1.5,4.0,'#ffd2a0',0.45,2.5);
 
-  // ---------- Wardrobe 150 × 60, full height ----------
+  // ---------- Wardrobe 150 × 60, full height (east wall) ----------
   box(2.25,W,0,0.08,1.0,2.5,M.oakDark);
   box(2.25,W,0.08,H,1.0,2.5,M.white);
   [1.5,2.0].forEach(function(z){box(2.247,2.25,0.08,H,z-0.002,z+0.002,M.oakDark,{cast:false});});
   box(2.247,2.25,2.2-0.002,2.2+0.002,1.0,2.5,M.oakDark,{cast:false});
   [1.46,1.54,1.96,2.04].forEach(function(z){box(2.23,2.247,0.95,1.3,z-0.006,z+0.006,M.oak);});
-  // growth chart on the wardrobe side
   box(2.25,2.85,0,H,0.995,1.0,M.white,{cast:false});
 
-  // ---------- Toy shelf (2 × 2 cubes) ----------
-  var tx1=WX-0.36,tx2=WX,tz1=2.62,tz2=3.42;
-  box(tx1,tx2,0,0.8,tz1,tz2,M.oak);
-  [[0.04,0.4],[0.42,0.78]].forEach(function(y,yi){[[tz1+0.03,tz1+0.39],[tz1+0.41,tz2-0.03]].forEach(function(z,zi){
-    box(tx1-0.002,tx2-0.03,y[0],y[1],z[0],z[1],M.white);
-    if((yi+zi)%2===0)box(tx1+0.01,tx2-0.06,y[0]+0.01,y[1]-0.04,z[0]+0.02,z[1]-0.02,[M.sage,M.blush][zi]);
-    else{books(0,0,0);for(var k=0;k<4;k++)box(tx1+0.05,tx1+0.08,y[0],y[0]+0.18+k*0.02,z[0]+0.04+k*0.06,z[0]+0.08+k*0.06,bm[k]);}
-  });});
-  cyl(tx1+0.18,tz1+0.2,0.06,0.8,0.95,M.pot,20,0.05);for(var j=0;j<12;j++)sph(tx1+0.18+(bseed()-0.5)*0.15,1.0+bseed()*0.12,tz1+0.2+(bseed()-0.5)*0.15,0.035,M.leaf,1,1.3,0.6);
-  // little house-shaped frame + rainbow
-  var rb=[M.terracotta,M.mustard,M.sage];rb.forEach(function(m,i){var t=new THREE.Mesh(new THREE.TorusGeometry(0.1-i*0.025,0.011,8,24,Math.PI),m);t.position.set(tx1+0.2,0.82,tz2-0.2);t.rotation.y=Math.PI/2;t.castShadow=true;scene.add(t);});
+  // ---------- Reading nook: low bookcase with front-facing books + floor cushion ----------
+  var bx1=WX-0.3,bx2=WX,bz1=2.62,bz2=3.45;
+  box(bx1,bx2,0,0.65,bz1,bz2,M.oak);
+  [0.22,0.44,0.64].forEach(function(y,i){box(bx1-0.01,bx1+0.02,y-0.06,y,bz1+0.02,bz2-0.02,M.white);
+    for(var k=0;k<3;k++){var c=box(bx1+0.03,bx1+0.05,y-0.2+0.04,y+0.02,bz1+0.06+k*0.26,bz1+0.27+k*0.26,bm[(i*3+k)%bm.length]);c.rotation.z=0.12;}});
+  cyl(2.0,3.14,0.3,0,0.12,M.blush,40,0.3);cyl(2.0,3.14,0.22,0.12,0.14,M.cream,40,0.26);
+  cyl(2.08,2.6,0.15,0,0.3,std({color:'#c8a878',roughness:1}),32,0.17);sph(2.05,0.3,2.57,0.06,M.blush);sph(2.12,0.31,2.65,0.05,M.sky);
 
   // ---------- Rug + play area ----------
-  var rug=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.75,0.012,64),M.rug);rug.position.set(1.35,0.006,2.2);rug.receiveShadow=true;scene.add(rug);
-  var ring=new THREE.Mesh(new THREE.TorusGeometry(0.62,0.025,4,64),M.rugRing);ring.rotation.x=Math.PI/2;ring.position.set(1.35,0.013,2.2);scene.add(ring);
-  // play gym (wooden A-frame)
-  [[1.05,2.2],[1.65,2.2]].forEach(function(p){[-1,1].forEach(function(s){var l=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.72),M.oak);l.position.set(p[0],0.33,p[1]+s*0.13);l.rotation.x=s*0.4;l.castShadow=true;scene.add(l);});});
-  var bar=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.66),M.oak);bar.rotation.z=Math.PI/2;bar.position.set(1.35,0.66,2.2);scene.add(bar);
-  [[1.2,M.blush],[1.35,M.mustard],[1.5,M.sage]].forEach(function(p){var s=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,0.18),M.cream);s.position.set(p[0],0.57,2.2);scene.add(s);sph(p[0],0.46,2.2,0.035,p[1]);});
-  box(1.0,1.7,0.012,0.03,1.95,2.45,M.sky);
-  // soft blocks + stacking rings
-  [[0.85,2.75,M.blush],[0.95,2.82,M.sage],[0.9,2.8,M.mustard,1]].forEach(function(b){box(b[0]-0.05,b[0]+0.05,0.012+(b[3]?0.1:0),0.112+(b[3]?0.1:0),b[1]-0.05,b[1]+0.05,b[2]);});
-  [M.terracotta,M.mustard,M.sage,M.sky].forEach(function(m,i){var t=new THREE.Mesh(new THREE.TorusGeometry(0.06-i*0.01,0.018,10,24),m);t.rotation.x=Math.PI/2;t.position.set(1.85,0.03+i*0.035,2.75);t.castShadow=true;scene.add(t);});
-  cyl(1.85,2.75,0.008,0.012,0.17,M.oak,8);
-  // woven toy basket
-  cyl(1.98,3.25,0.18,0,0.3,std({color:'#c8a878',roughness:1}),32,0.2);sph(1.95,0.3,3.22,0.07,M.blush);sph(2.04,0.31,3.3,0.06,M.sky);
-
+  var RX=1.5,RZ=2.0;
+  var rug=new THREE.Mesh(new THREE.CylinderGeometry(0.68,0.68,0.012,64),M.rug);rug.position.set(RX,0.006,RZ);rug.receiveShadow=true;scene.add(rug);
+  var ring=new THREE.Mesh(new THREE.TorusGeometry(0.56,0.025,4,64),M.rugRing);ring.rotation.x=Math.PI/2;ring.position.set(RX,0.013,RZ);scene.add(ring);
+  [[RX-0.3,RZ],[RX+0.3,RZ]].forEach(function(p){[-1,1].forEach(function(s){var l=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.72),M.oak);l.position.set(p[0],0.33,p[1]+s*0.13);l.rotation.x=s*0.4;l.castShadow=true;scene.add(l);});});
+  var bar=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.66),M.oak);bar.rotation.z=Math.PI/2;bar.position.set(RX,0.66,RZ);scene.add(bar);
+  [[RX-0.15,M.blush],[RX,M.mustard],[RX+0.15,M.sage]].forEach(function(p){var s=new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,0.18),M.cream);s.position.set(p[0],0.57,RZ);scene.add(s);sph(p[0],0.46,RZ,0.035,p[1]);});
+  box(RX-0.35,RX+0.35,0.012,0.03,RZ-0.25,RZ+0.25,M.sky);
+  [[RX-0.45,RZ+0.5,M.blush],[RX-0.35,RZ+0.57,M.sage],[RX-0.4,RZ+0.55,M.mustard,1]].forEach(function(b){box(b[0]-0.05,b[0]+0.05,0.012+(b[3]?0.1:0),0.112+(b[3]?0.1:0),b[1]-0.05,b[1]+0.05,b[2]);});
+  [M.terracotta,M.mustard,M.sage,M.sky].forEach(function(m,i){var t=new THREE.Mesh(new THREE.TorusGeometry(0.06-i*0.01,0.018,10,24),m);t.rotation.x=Math.PI/2;t.position.set(RX+0.45,0.03+i*0.035,RZ+0.45);t.castShadow=true;scene.add(t);});
+  cyl(RX+0.45,RZ+0.45,0.008,0.012,0.17,M.oak,8);
   // ---------- Pendant (paper lantern) ----------
   var ceilingObjs=[ceil];
-  ceilingObjs.push(cyl(1.4,2.2,0.004,2.4,H,M.cream,6));
-  var lantern=new THREE.Mesh(new THREE.SphereGeometry(0.25,32,20),paper);lantern.scale.set(1,0.85,1);lantern.position.set(1.4,2.2,2.2);scene.add(lantern);ceilingObjs.push(lantern);
-  var lanternLight=pl(1.4,2.12,2.2,'#ffd8a8',0.9,5);
+  ceilingObjs.push(cyl(1.4,2.0,0.004,2.4,H,M.cream,6));
+  var lantern=new THREE.Mesh(new THREE.SphereGeometry(0.25,32,20),paper);lantern.scale.set(1,0.85,1);lantern.position.set(1.4,2.2,2.0);scene.add(lantern);ceilingObjs.push(lantern);
+  var lanternLight=pl(1.4,2.12,2.0,'#ffd8a8',0.9,5);
 
   // ---------- Global light ----------
   var hemi=new THREE.HemisphereLight('#fbf5ea','#6f6254',0.6);scene.add(hemi);
   var sun=new THREE.DirectionalLight('#fff0d8',2.0);
-  sun.position.set(-4.0,3.4,D/2+1.2);sun.target.position.set(W/2,0,D/2);scene.add(sun.target);
+  sun.position.set(W/2-1.0,3.4,D+4.0);sun.target.position.set(W/2,0,D/2);scene.add(sun.target);
   sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
   var sc=sun.shadow.camera;sc.left=-6;sc.right=6;sc.top=6;sc.bottom=-6;sc.near=0.5;sc.far=20;
   sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.02;scene.add(sun);
@@ -339,10 +343,10 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   // ---------- Views ----------
   var views={
     overview:{pos:[W+2.3,4.6,D+2.4],tgt:[W/2,0.5,D/2]},
-    entry:{pos:[2.05,1.6,0.18],tgt:[0.8,0.8,3.4]},
-    door2:{pos:[2.45,1.55,4.0],tgt:[0.5,0.9,0.9]},
-    window:{pos:[0.35,1.5,1.25],tgt:[2.1,0.8,3.6]},
-    crib:{pos:[1.75,1.5,2.35],tgt:[0.85,0.7,4.1]},
+    entry:{pos:[2.45,1.55,3.95],tgt:[0.4,0.9,1.3]},
+    door2:{pos:[2.3,1.6,0.2],tgt:[0.6,0.8,3.6]},
+    window:{pos:[1.7,1.5,4.05],tgt:[0.9,0.8,0.3]},
+    crib:{pos:[2.0,1.6,3.3],tgt:[0.3,0.6,1.9]},
     top:{pos:[W/2,7.5,D/2+0.01],tgt:[W/2,0,D/2]}
   };
   window.__views=views;
@@ -369,7 +373,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
     var ch=p.y>H;
     if(ceilMat.colorWrite===ch){ceilMat.colorWrite=!ch;ceilMat.depthWrite=!ch;ceilMat.needsUpdate=true;}
     ceilingObjs.forEach(function(o){if(o!==ceil)o.visible=!ch;});
-    curtainObjs.forEach(function(o){o.visible=!hide.Wt;});
+    curtainObjs.forEach(function(o){o.visible=!hide.S;});
   }
   function resize(){var w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
   window.addEventListener('resize',resize);
@@ -377,7 +381,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   function loop(now){
     var dt=Math.min((now-last)/1000,0.05);last=now;
     if(tween){tween.t=Math.min(1,tween.t+dt/0.9);var k=ease(tween.t);camera.position.lerpVectors(tween.fp,tween.tp,k);controls.target.lerpVectors(tween.ft,tween.tt,k);if(tween.t>=1)tween=null;}
-    mob.rotation.y+=dt*0.15;var c_=Math.cos(mob.rotation.y),s_=Math.sin(mob.rotation.y);mob.position.x=1.0-(1.0*c_+3.89*s_);mob.position.z=3.89-(-1.0*s_+3.89*c_);
+    mob.rotation.y+=dt*0.15;var c_=Math.cos(mob.rotation.y),s_=Math.sin(mob.rotation.y);mob.position.x=MX-(MX*c_+MZ*s_);mob.position.z=MZ-(-MX*s_+MZ*c_);
     controls.update();updateCutaway();renderer.render(scene,camera);requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
