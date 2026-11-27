@@ -42,7 +42,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
 <div id="stage" aria-label="3D визуализация на детската стая"></div>
 <div class="card">
   <h1>Детска стая</h1>
-  <p>Кошара-легло 70 × 140, скрин с повивалник, гардероб, люлеещ се стол за кърмене до прозорците, кът за четене и рафт за играчки. Вратата в долния десен ъгъл е към терасата, прозорците са до нея. ≈ 285 × 430 см, таван 270 см.</p>
+  <p>Кошара-легло 70 × 140, скрин с повивалник, гардероб, люлеещ се стол за кърмене до прозорците, кът за четене и рафт за играчки. Вратата в долния десен ъгъл е към терасата, до нея има френски прозорци. ≈ 285 × 430 см, таван 270 см.</p>
 </div>
 <div class="hint">Влачи за завъртане, скрол или щипване за приближаване</div>
 <div class="bar">
@@ -142,6 +142,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
     linen:std({color:'#dccfbd',roughness:1,side:THREE.DoubleSide}),
     sheer:std({color:'#f7f3ec',roughness:1,transparent:true,opacity:0.5,side:THREE.DoubleSide,depthWrite:false})
   };
+  var winFrame=std({color:'#2b2927',roughness:0.5});var steel=std({color:'#b9bdc0',roughness:0.3,metalness:0.8});
   var glass=std({color:'#d8e6ea',roughness:0.05,transparent:true,opacity:0.2,depthWrite:false});
   var paper=std({color:'#fbf6ec',emissive:'#ffd9a0',emissiveIntensity:0,roughness:1,side:THREE.DoubleSide});
   var led=std({color:'#fff1d6',emissive:'#ffc98a',emissiveIntensity:0});
@@ -176,7 +177,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   wb('Wt',-T,0,0,H,0,D);
   // South wall: windows 35 → 215, sill 85
   var WN1=0.35,WN2=2.15;
-  wb('S',-T,WN1,0,H,D,D+T);wb('S',WN1,WN2,0,0.85,D,D+T);wb('S',WN1,WN2,2.4,H,D,D+T);wb('S',WN2,W+T,0,H,D,D+T);
+  wb('S',-T,WN1,0,H,D,D+T);wb('S',WN1,WN2,2.35,H,D,D+T);wb('S',WN2,W+T,0,H,D,D+T);
   // East wall with the 15,5 cm step; balcony door to the terrace 357,5 → 426
   wb('E',W,W+T,0,H,-T,STEPZ);
   wb('E',WX,W+T,0,H,STEPZ,3.575);wb('E',WX,W+T,DH,H,3.575,4.26);wb('E',WX,W+T,0,H,4.26,D+T);
@@ -189,23 +190,22 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   box(1.865,2.75,0,DH,-0.1,-0.06,M.oak,{parent:walls.N});box(1.93,2.0,0.99,1.01,-0.05,-0.02,M.brass,{parent:walls.N});
   box(1.84,1.865,0,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});box(2.75,2.775,0,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});box(1.84,2.775,DH,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});
   // Balcony door to the terrace (glazed, white frame) on the stepped east wall
-  box(WX+0.09,WX+0.1,0.12,DH-0.08,3.575,4.26,glass,{parent:walls.E,cast:false});
-  [[0,DH,3.575,3.64],[0,DH,4.195,4.26],[DH-0.08,DH,3.575,4.26],[0,0.12,3.575,4.26]].forEach(function(a){box(WX+0.06,WX+0.12,a[0],a[1],a[2],a[3],M.frame,{parent:walls.E});});
-  box(WX+0.03,WX+0.06,0.98,1.12,3.66,3.69,M.brass,{parent:walls.E});
+  box(WX+0.09,WX+0.1,0.06,DH-0.05,3.575,4.26,glass,{parent:walls.E,cast:false});
+  [[0,DH,3.575,3.625],[0,DH,4.21,4.26],[DH-0.05,DH,3.575,4.26],[0,0.06,3.575,4.26]].forEach(function(a){box(WX+0.07,WX+0.13,a[0],a[1],a[2],a[3],winFrame,{parent:walls.E});});
+  box(WX+0.04,WX+0.07,1.0,1.12,3.66,3.68,steel,{parent:walls.E});
   // terrace railing outside
   box(W+1.4,W+1.44,0.96,1.0,2.6,6.0,M.black);for(var rz=2.6;rz<=6.0;rz+=0.12)box(W+1.41,W+1.43,0,0.96,rz,rz+0.015,M.black);
 
-  // Windows (south wall, two sashes)
-  box(WN1-0.02,WN2+0.02,0.83,0.86,D-0.04,D+0.04,M.white,{parent:walls.S});
-  box(WN1,WN2,0.85,2.4,D+0.1,D+0.12,glass,{parent:walls.S,cast:false});
-  [[WN1,WN1+0.05],[WN2-0.05,WN2],[(WN1+WN2)/2-0.025,(WN1+WN2)/2+0.025]].forEach(function(a){box(a[0],a[1],0.85,2.4,D+0.06,D+0.14,M.frame,{parent:walls.S});});
-  [[0.85,0.9],[2.35,2.4]].forEach(function(a){box(WN1,WN2,a[0],a[1],D+0.06,D+0.14,M.frame,{parent:walls.S});});
-  // radiator under the window
-  box(0.7,1.8,0.15,0.7,D-0.1,D-0.04,M.white,{parent:walls.S});
+  // French windows like in the living room / bedroom (floor to 235 cm, dark frame)
+  [(WN1+WN2)/2-0.1,(WN1+WN2)/2+0.08].forEach(function(hx){box(hx,hx+0.02,1.0,1.12,D+0.04,D+0.07,steel,{parent:walls.S,cast:false});});
+  box(WN1,WN2,0,0.02,D,D+T,winFrame,{parent:walls.S,cast:false});
+  box(WN1,WN2,0.02,2.35,D+0.09,D+0.11,glass,{parent:walls.S,cast:false});
+  [[WN1,WN1+0.05],[WN2-0.05,WN2],[(WN1+WN2)/2-0.03,(WN1+WN2)/2+0.03]].forEach(function(a){box(a[0],a[1],0,2.35,D+0.07,D+0.13,winFrame,{parent:walls.S});});
+  [[0,0.06],[2.3,2.35]].forEach(function(a){box(WN1,WN2,a[0],a[1],D+0.07,D+0.13,winFrame,{parent:walls.S});});
   // Curtains (linen + sheer)
   var curtainObjs=[];
   curtainObjs.push(box(0.1,2.4,2.5,2.53,D-0.08,D-0.06,M.brass,{cast:false}));
-  function curtain(x1,x2,mat,n){var w=(x2-x1)/n;for(var i=0;i<n;i++){var z=D-0.1-(i%2)*0.025;curtainObjs.push(box(x1+i*w,x1+(i+1)*w+0.01,0.47,2.5,z-0.012,z,mat,{cast:mat!==M.sheer}));}}
+  function curtain(x1,x2,mat,n){var w=(x2-x1)/n;for(var i=0;i<n;i++){var z=D-0.1-(i%2)*0.025;curtainObjs.push(box(x1+i*w,x1+(i+1)*w+0.01,0.01,2.5,z-0.012,z,mat,{cast:mat!==M.sheer}));}}
   curtain(0.1,0.42,M.linen,6);curtain(0.42,0.85,M.sheer,7);curtain(1.65,2.08,M.sheer,7);curtain(2.08,2.4,M.linen,6);
 
   // ---------- Painted sage arch behind the crib (west wall) ----------
@@ -270,7 +270,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   [M.terracotta,M.mustard,M.sage].forEach(function(m,i){var t=new THREE.Mesh(new THREE.TorusGeometry(0.1-i*0.025,0.011,8,24,Math.PI),m);t.position.set(0.18,0.82,tz2-0.2);t.rotation.y=Math.PI/2;t.castShadow=true;scene.add(t);});
 
   // ---------- Rocking / nursing chair by the window + floor lamp ----------
-  var chx1=0.08,chx2=0.78,chz1=3.5,chz2=4.2;
+  var chx1=0.08,chx2=0.78,chz1=3.56,chz2=4.2;
   var rocker=new THREE.Group();scene.add(rocker);
   function rb(x1,x2,y1,y2,z1,z2,m){var b=box(x1,x2,y1,y2,z1,z2,m,{parent:rocker});return b;}
   [[chz1,chz1+0.04],[chz2-0.04,chz2]].forEach(function(z){var r=new THREE.Mesh(new THREE.TorusGeometry(0.6,0.012,8,40,0.9),M.oak);r.position.set(0.43,0.6,(z[0]+z[1])/2);r.rotation.z=-Math.PI/2-0.45;rocker.add(r);});
@@ -281,8 +281,8 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   rb(chx1+0.14,chx1+0.25,0.46,0.8,chz1+0.25,chz2-0.25,M.blush);
   cyl(0.98,3.55,0.2,0,0.34,M.sage,32,0.18);
   // floor lamp in the corner
-  cyl(0.95,4.12,0.13,0,0.03,M.black,24);cyl(0.95,4.12,0.012,0.03,1.45,M.black,8);
-  cyl(0.95,4.12,0.2,1.45,1.68,paper,32,0.14);pl(0.95,1.5,4.0,'#ffd2a0',0.45,2.5);
+  cyl(0.17,3.4,0.12,0,0.03,M.black,24);cyl(0.17,3.4,0.012,0.03,1.45,M.black,8);
+  cyl(0.17,3.4,0.2,1.45,1.68,paper,32,0.14);pl(0.3,1.5,3.4,'#ffd2a0',0.45,2.5);
 
   // ---------- Wardrobe 150 × 60, full height (east wall) ----------
   box(2.25,W,0,0.08,1.0,2.5,M.oakDark);
