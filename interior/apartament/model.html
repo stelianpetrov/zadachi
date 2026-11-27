@@ -299,5 +299,6 @@ body.walk #joy{display:block}
   window.__api={scene:scene,ortho:function(x1,x2,z1,z2,w,h){var oc=new THREE.OrthographicCamera(x1,x2,-z1,-z2,0.1,50);oc.position.set(0,20,0);oc.up.set(0,0,-1);oc.lookAt(0,0,0);highs.forEach(function(o){o.visible=false;});ceilings.visible=false;renderer.setPixelRatio(1);renderer.setSize(w,h);renderer.render(scene,oc);var u=renderer.domElement.toDataURL('image/png');resize();return u;},setMode:setMode,go:function(x,z,y,p){pos.set(x,EYE,z);yaw=y;pitch=p||0;},cam:function(p,t,fov){camera.position.fromArray(p);controls.target.fromArray(t);if(fov){camera.fov=fov;camera.updateProjectionMatrix();}controls.update();},tour:function(u){tour={s:u*tourLen};},loaded:function(){return left===0;}};
 })();
 </script>
+<script src="../room-switch.js?v=rs1"></script>
 </body>
 </html>
