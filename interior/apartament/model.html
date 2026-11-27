@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Целият апартамент – 3D и разходка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  --ink:#f3efe8;--muted:#c4bcb0;--panel:rgba(32,28,25,.78);--line:rgba(255,255,255,.12);
+  --hover:rgba(255,255,255,.08);--on:#e6dccb;--on-ink:#2a2420;--bg:#1c1917;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){--ink:#2a2420;--muted:#5f564d;--panel:rgba(250,247,242,.88);--line:rgba(42,36,32,.14);--hover:rgba(42,36,32,.06);--on:#3b2f27;--on-ink:#f3efe8;--bg:#e7e1d8;}
+}
+:root[data-theme="light"]{--ink:#2a2420;--muted:#5f564d;--panel:rgba(250,247,242,.88);--line:rgba(42,36,32,.14);--hover:rgba(42,36,32,.06);--on:#3b2f27;--on-ink:#f3efe8;--bg:#e7e1d8;}
+:root[data-theme="dark"]{--ink:#f3efe8;--muted:#c4bcb0;--panel:rgba(32,28,25,.78);--line:rgba(255,255,255,.12);--hover:rgba(255,255,255,.08);--on:#e6dccb;--on-ink:#2a2420;--bg:#1c1917;}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Onest","Segoe UI","Helvetica Neue",sans-serif}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.card{position:fixed;left:16px;top:calc(16px + env(safe-area-inset-top,0px));background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;padding:14px 16px;max-width:min(340px,calc(100% - 32px))}
+.card .k{font-size:11px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.card .k a{color:inherit;text-decoration:none}
+.card h1{margin:2px 0 4px;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.card p{margin:0;font-size:14px;line-height:1.45;color:var(--muted)}
+#where{margin-top:8px;font-size:15px;font-weight:600;color:var(--ink);min-height:1em}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:max-content;max-width:calc(100% - 24px)}
+.group{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;padding:4px;background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px}
+button{font:inherit;font-size:14px;font-weight:500;color:var(--ink);background:transparent;border:0;border-radius:9px;padding:0 13px;min-height:40px;cursor:pointer}
+button:hover{background:var(--hover)}
+button[aria-pressed="true"]{background:var(--on);color:var(--on-ink)}
+button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
+.hint{position:fixed;right:16px;top:calc(16px + env(safe-area-inset-top,0px));font-size:13px;line-height:1.45;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;max-width:290px}
+.lbl{position:fixed;left:0;top:0;pointer-events:none;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#2a2420;background:rgba(250,247,242,.85);border-radius:6px;padding:3px 7px;white-space:nowrap;transform:translate(-50%,-50%)}
+#joy{position:fixed;left:24px;bottom:calc(96px + env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;background:var(--panel);border:1px solid var(--line);display:none;touch-action:none}
+#joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--on);opacity:.85}
+body.walk #joy{display:block}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted);pointer-events:none}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+@media (max-width:700px){.hint{display:none}.card{padding:10px 12px}.card h1{font-size:17px}.card p{display:none}button{padding:0 9px;font-size:13px;min-height:36px}}
+@media (hover:hover) and (pointer:fine){body.walk #joy{display:none}}
+</style>
+</head>
+<body>
+<div id="stage" aria-label="3D модел на целия апартамент"></div>
+<div class="card">
+  <div class="k"><a href="./">Апартамент</a> · финален вариант</div>
+  <h1>Целият апартамент</h1>
+  <p>Любимите варианти, сглобени по скицата: коридор v3, хол + кухня v4, спалня, баня, детска. Мокрото помещение е само обем, докато дойдат размерите. Таван 270 см.</p>
+  <div id="where"></div>
+</div>
+<div class="hint" id="hint">Влачи за завъртане, скрол или щипване за приближаване. Натисни „Разходка“, за да влезеш вътре.</div>
+<div id="joy" aria-hidden="true"><i></i></div>
+<div class="bar">
+  <div class="group" role="group" aria-label="Режим">
+    <button type="button" data-mode="top" aria-pressed="true">Отгоре</button>
+    <button type="button" data-mode="walk" aria-pressed="false">Разходка</button>
+    <button type="button" data-mode="tour" aria-pressed="false">▶ Автоматична разходка</button>
+  </div>
+  <div class="group" role="group" aria-label="Стаи">
+    <button type="button" data-room="koridor">Коридор</button>
+    <button type="button" data-room="hol">Хол + кухня</button>
+    <button type="button" data-room="spalnya">Спалня</button>
+    <button type="button" data-room="detska">Детска</button>
+    <button type="button" data-room="banya">Баня</button>
+    <button type="button" data-room="mokro">Мокро</button>
+  </div>
+</div>
+<div id="load">Зареждане на стаите…</div>
+<div id="err">3D изгледът изисква WebGL. Отвори страницата в актуален браузър.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var renderer;
+  try{renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});}catch(e){document.getElementById('err').style.display='flex';document.getElementById('load').style.display='none';return;}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.92;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+
+  var scene=new THREE.Scene();
+  scene.background=new THREE.Color('#d9d3c9');
+  var camera=new THREE.PerspectiveCamera(42,1,0.05,120);
+  var controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.maxPolarAngle=Math.PI*0.49;controls.minDistance=2;controls.maxDistance=30;
+
+  // ---------- Apartment layout (metres, x → right, z → down on the plan; origin = corridor inner corner by the storage) ----------
+  var H=2.7, T=0.2;
+  var ROOMS={
+    koridor:{name:'Коридор',x:0,z:0,file:'koridor'},
+    banya:{name:'Баня',x:7.3775,z:0,file:'banya'},
+    spalnya:{name:'Спалня',x:1.24,z:1.565,file:'spalnya'},
+    hol:{name:'Хол + кухня',x:4.46,z:1.565,file:'hol'},
+    detska:{name:'Детска стая',x:-1.7725,z:2.0,file:'detska'}
+  };
+  // walkable rectangles [x1,z1,x2,z2] – rooms + door openings
+  var AREAS=[
+    ['koridor',0,0,7.1775,1.365],['koridor',0,0,1.08,1.80],
+    ['banya',7.3775,0,10.3875,1.39],
+    ['spalnya',1.24,1.565,4.26,5.095],
+    ['hol',4.46,1.565,10.34,6.275],
+    ['detska',-1.7725,2.0,1.0775,4.53],['detska',-1.7725,4.53,0.9225,6.30],
+    ['mokro',-1.84,0,-0.2,1.80],
+    ['terasa',1.1225,5.295,4.26,6.30],
+    ['vhod',3.6,-1.8,6.2,-0.2]
+  ];
+  var DOORS=[
+    [4.40,-0.25,5.44,0.05],      // entrance
+    [0.12,1.75,0.95,2.05],       // corridor → kids
+    [3.34,1.33,4.19,1.60],       // corridor → bedroom
+    [4.48,1.33,5.34,1.60],       // corridor → living
+    [7.14,0.66,7.42,1.34],       // corridor → bath
+    [-0.25,1.08,0.05,1.70],      // corridor → mokro / storage
+    [0.89,5.60,1.16,6.24],       // kids → terrace
+    [3.54,5.06,4.13,5.33],       // bedroom → terrace
+    [4.22,5.52,4.50,6.25]        // living → terrace
+  ];
+  var NAMES={koridor:'Коридор',banya:'Баня',spalnya:'Спалня',hol:'Хол + кухня',detska:'Детска стая',mokro:'Мокро помещение / склад',terasa:'Тераса',vhod:'Пред входната врата'};
+  function areaAt(x,z){for(var i=0;i<AREAS.length;i++){var a=AREAS[i];if(x>=a[1]&&x<=a[3]&&z>=a[2]&&z<=a[4])return a[0];}for(i=0;i<DOORS.length;i++){var d=DOORS[i];if(x>=d[0]&&x<=d[2]&&z>=d[1]&&z<=d[3])return 'door';}return null;}
+  function free(x,z){var r=0.18;return areaAt(x,z)&&areaAt(x+r,z)&&areaAt(x-r,z)&&areaAt(x,z+r)&&areaAt(x,z-r);}
+
+  // ---------- Materials & helpers ----------
+  function std(o){return new THREE.MeshStandardMaterial(o);}
+  function canvasTex(w,h,draw){var c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);var t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t;}
+  function box(x1,x2,y1,y2,z1,z2,mat,parent){var m=new THREE.Mesh(new THREE.BoxGeometry(x2-x1,y2-y1,z2-z1),mat);m.position.set((x1+x2)/2,(y1+y2)/2,(z1+z2)/2);m.castShadow=true;m.receiveShadow=true;(parent||scene).add(m);return m;}
+  var M={
+    base:std({color:'#a88a66',roughness:0.8}),
+    slab:std({color:'#8d877e',roughness:0.95}),
+    shell:std({color:'#efe9df',roughness:0.95}),
+    cut:std({color:'#3a3430',roughness:0.9}),
+    rail:std({color:'#2b2927',roughness:0.5,metalness:0.4}),
+    glass:std({color:'#cfe0e6',transparent:true,opacity:0.25,roughness:0.05}),
+    ceil:std({color:'#f2eee7',roughness:0.95,side:THREE.DoubleSide})
+  };
+  var tile=canvasTex(512,512,function(g,w,h){g.fillStyle='#bdb4a6';g.fillRect(0,0,w,h);var n=4,s=w/n;for(var i=0;i<n;i++)for(var j=0;j<n;j++){var v=180+((i*7+j*13)%5)*6;g.fillStyle='rgb('+v+','+(v-8)+','+(v-20)+')';g.fillRect(i*s+3,j*s+3,s-6,s-6);}});
+  tile.wrapS=tile.wrapT=THREE.RepeatWrapping;tile.repeat.set(5,2);
+  M.terrace=std({map:tile,roughness:0.85});
+
+  // ground slab under the whole flat (shows through door openings)
+  box(-2.1,10.6,-0.06,-0.002,-0.25,6.55,M.base);
+  box(-30,40,-0.2,-0.07,-30,40,M.slab).receiveShadow=true;
+
+  // Terrace: tiled floor, railing, glass
+  var terr=new THREE.Mesh(new THREE.PlaneGeometry(4.26-0.9225,6.50-5.095),M.terrace);terr.rotation.x=-Math.PI/2;terr.position.set((0.9225+4.26)/2,0.004,(5.095+6.50)/2);terr.receiveShadow=true;scene.add(terr);
+  box(1.0,4.26,0,1.0,6.46,6.50,M.glass).castShadow=false;
+  box(1.0,4.26,0.98,1.03,6.44,6.52,M.rail);
+  [1.0,2.0,3.1,4.24].forEach(function(x){box(x-0.02,x+0.02,0,1.0,6.45,6.51,M.rail);});
+  // landing outside the entrance
+  box(3.4,6.4,-0.06,0.0,-2.0,-0.2,std({color:'#b9b1a5',roughness:0.9}));
+
+  // Mokro / storage placeholder – a translucent volume until the measurements arrive
+  var mokro=new THREE.Group();scene.add(mokro);
+  var mx1=-1.84,mx2=-0.2,mz1=0,mz2=1.80;
+  var tagTex=canvasTex(1024,512,function(g,w,h){g.fillStyle='#e9e3d8';g.fillRect(0,0,w,h);g.strokeStyle='#8e3b22';g.lineWidth=10;g.setLineDash([36,22]);g.strokeRect(20,20,w-40,h-40);g.fillStyle='#2a2420';g.textAlign='center';g.font='600 84px Onest, sans-serif';g.fillText('МОКРО',w/2,200);g.fillText('ПОМЕЩЕНИЕ',w/2,300);g.font='500 54px Onest, sans-serif';g.fillStyle='#8e3b22';g.fillText('размерите предстоят',w/2,400);});
+  var tagMat=std({map:tagTex,roughness:0.9});
+  var floorTag=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.65),tagMat);floorTag.rotation.x=-Math.PI/2;floorTag.position.set((mx1+mx2)/2,0.01,(mz1+mz2)/2);mokro.add(floorTag);
+  var mf=new THREE.Mesh(new THREE.PlaneGeometry(mx2-mx1,mz2-mz1),std({color:'#d8d2c8',roughness:0.9}));mf.rotation.x=-Math.PI/2;mf.position.set((mx1+mx2)/2,0.003,(mz1+mz2)/2);mf.receiveShadow=true;mokro.add(mf);
+  box(mx1-T,mx2,0,H,mz1-T,mz1,M.shell,mokro);
+  box(mx1-T,mx1,0,H,mz1,mz2+T,M.shell,mokro);
+  box(mx1-T,mx2,0,H,mz2,mz2+T,M.shell,mokro);
+  var vol=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.2,0.6),std({color:'#cfc6b8',transparent:true,opacity:0.55,roughness:0.9}));vol.position.set(mx1+0.6,0.6,mz1+0.35);mokro.add(vol);
+
+  // Room-by-room ceilings (only for the walk-through)
+  var ceilings=new THREE.Group();ceilings.visible=false;scene.add(ceilings);
+  [[0,0,7.1775,1.365,2.58],[0,0,1.08,1.80,2.58],[7.3775,0,10.3875,1.39,2.62],[1.24,1.565,4.26,5.095,H],[4.46,1.565,10.34,6.275,H],[-1.7725,2.0,1.0775,6.30,H],[mx1,mz1,mx2,mz2,H]].forEach(function(c){var p=new THREE.Mesh(new THREE.PlaneGeometry(c[2]-c[0],c[3]-c[1]),M.ceil);p.rotation.x=Math.PI/2;p.position.set((c[0]+c[2])/2,c[4],(c[1]+c[3])/2);ceilings.add(p);});
+
+  // ---------- Lights ----------
+  var hemi=new THREE.HemisphereLight('#fbf5ea','#6f6254',0.6);scene.add(hemi);
+  var amb=new THREE.AmbientLight('#fff6ea',0.15);scene.add(amb);
+  var sun=new THREE.DirectionalLight('#fff1dc',1.6);
+  sun.position.set(2.5,9,14);sun.target.position.set(4.2,0,3.2);scene.add(sun.target);
+  sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+  var sc=sun.shadow.camera;sc.left=-8;sc.right=8;sc.top=7;sc.bottom=-7;sc.near=1;sc.far=30;
+  sun.shadow.bias=-0.0005;sun.shadow.normalBias=0.03;scene.add(sun);
+  var walkLight=new THREE.PointLight('#fff2df',0,5,2);scene.add(walkLight);
+
+  // ---------- Rooms from the favourite variants ----------
+  var loader=new THREE.GLTFLoader(),left=Object.keys(ROOMS).length,highs=[];
+  Object.keys(ROOMS).forEach(function(k){
+    var r=ROOMS[k];
+    loader.load('glb/'+r.file+'.glb',function(g){
+      var root=g.scene;root.position.set(r.x,0,r.z);
+      root.traverse(function(o){
+        if(o.isMesh){o.castShadow=true;o.receiveShadow=true;
+          var m=o.material;if(m&&m.map)m.map.anisotropy=4;
+          if(m&&m.metalness>0.75&&m.roughness<0.2&&!m.map){m.color.set('#cfd6da');m.metalness=0.35;m.roughness=0.12;m.envMapIntensity=1;}
+          var b=new THREE.Box3().setFromObject(o);if(b.min.y>2.3)highs.push(o);}
+      });
+      scene.add(root);r.obj=root;
+      if(--left===0){document.getElementById('load').style.display='none';root.updateMatrixWorld(true);}
+    },undefined,function(){if(--left===0)document.getElementById('load').style.display='none';});
+  });
+
+  // ---------- Labels over the plan ----------
+  var LBL=[['Коридор',2.6,0.68],['Хол + кухня',7.4,3.9],['Спалня',2.75,3.3],['Детска',-0.35,4.1],['Баня',8.9,0.7],['Мокро (предстои)',-1.02,0.9],['Тераса',2.7,5.85],['Вход',4.92,-0.9]];
+  var lblEls=LBL.map(function(l){var d=document.createElement('div');d.className='lbl';d.textContent=l[0];document.body.appendChild(d);return d;});
+  var tmpV=new THREE.Vector3();
+  function placeLabels(){var show=mode==='top',w=stage.clientWidth,h=stage.clientHeight;
+    LBL.forEach(function(l,i){var el=lblEls[i];if(!show){el.style.display='none';return;}tmpV.set(l[1],2.75,l[2]).project(camera);
+      if(tmpV.z>1){el.style.display='none';return;}el.style.display='block';el.style.left=((tmpV.x+1)/2*w)+'px';el.style.top=((1-tmpV.y)/2*h)+'px';});}
+
+  // ---------- Modes ----------
+  var mode='top', yaw=0, pitch=0, pos=new THREE.Vector3(4.92,1.6,-1.2), EYE=1.6;
+  var keys={}, joy={x:0,y:0}, tour=null, tween=null;
+  var TOPV={pos:[4.3,13.5,13.2],tgt:[4.3,0,3.0]};
+  var ROOMVIEW={ // walk-mode spots: x,z,yaw (0 = looking toward +z / the terrace side)
+    koridor:[6.7,0.75,Math.PI/2+0.15], hol:[5.3,2.3,0.95], spalnya:[1.9,4.6,2.51], detska:[0.1,5.0,-2.61],
+    banya:[8.2,0.9,Math.PI/2], mokro:[0.5,1.2,Math.PI/2]
+  };
+  var where=document.getElementById('where');
+  function setPressed(attr,val){document.querySelectorAll('['+attr+']').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute(attr)===val));});}
+  function setMode(m){
+    mode=m;setPressed('data-mode',m);document.body.classList.toggle('walk',m!=='top');
+    controls.enabled=(m==='top');ceilings.visible=(m!=='top');
+    highs.forEach(function(o){o.visible=(m!=='top');});
+    walkLight.intensity=(m==='top')?0:0.6;
+    document.getElementById('hint').textContent=m==='top'?'Влачи за завъртане, скрол или щипване за приближаване. Натисни „Разходка“, за да влезеш вътре.':(m==='walk'?'Ходи със стрелките или W A S D (на телефона с кръга долу вляво). Влачи, за да се оглеждаш.':'Автоматична разходка през всички стаи. Натисни „Разходка“, за да спреш и да продължиш сам.');
+    if(m==='top'){tour=null;tween={t:0,fp:camera.position.clone(),tp:new THREE.Vector3().fromArray(TOPV.pos),ft:controls.target.clone(),tt:new THREE.Vector3().fromArray(TOPV.tgt)};where.textContent='';}
+    if(m==='walk'){tour=null;if(!areaAt(pos.x,pos.z)){pos.set(4.92,EYE,-1.2);yaw=0;pitch=-0.05;}}
+    if(m==='tour'){startTour();}
+  }
+  document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){setMode(b.getAttribute('data-mode'));});});
+  document.querySelectorAll('[data-room]').forEach(function(b){b.addEventListener('click',function(){var v=ROOMVIEW[b.getAttribute('data-room')];pos.set(v[0],EYE,v[1]);yaw=v[2];pitch=-0.08;if(mode!=='walk')setMode('walk');});});
+
+  // Guided tour: entrance → corridor → kids → bedroom → living/kitchen → terrace → bath
+  var TOUR=[[4.92,-1.4],[4.92,-0.3],[4.92,0.7],[3.0,0.75],[1.2,0.8],[0.53,1.35],[0.53,2.4],[0.15,3.4],[0.0,5.0],[-0.6,5.2],[0.15,3.4],[0.53,2.3],[0.53,1.3],[2.0,0.75],[3.76,0.8],[3.76,1.95],[2.5,2.0],[1.95,3.2],[1.95,4.45],[1.95,3.2],[2.6,1.98],[3.76,1.9],[3.76,0.8],[4.9,0.8],[4.9,2.0],[6.5,2.6],[7.8,3.1],[7.85,4.7],[7.8,3.0],[6.0,2.4],[4.9,1.9],[4.9,0.8],[6.6,0.8],[7.6,0.95],[8.5,0.85]];
+  var curve=new THREE.CatmullRomCurve3(TOUR.map(function(p){return new THREE.Vector3(p[0],EYE,p[1]);}),false,'centripetal',0.5);
+  var tourLen=curve.getLength();
+  function startTour(){tour={s:0};}
+
+  // ---------- Input ----------
+  var dragging=false,lx=0,ly=0;
+  renderer.domElement.addEventListener('pointerdown',function(e){if(mode==='top')return;if(mode==='tour')setMode('walk');dragging=true;lx=e.clientX;ly=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+  renderer.domElement.addEventListener('pointermove',function(e){if(!dragging)return;yaw-=(e.clientX-lx)*0.004;pitch-=(e.clientY-ly)*0.004;pitch=Math.max(-1.2,Math.min(1.2,pitch));lx=e.clientX;ly=e.clientY;});
+  renderer.domElement.addEventListener('pointerup',function(){dragging=false;});
+  renderer.domElement.addEventListener('pointercancel',function(){dragging=false;});
+  addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(mode==='tour'&&/^(arrow|w$|a$|s$|d$)/.test(e.key.toLowerCase()))setMode('walk');});
+  addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
+  var joyEl=document.getElementById('joy'),knob=joyEl.firstElementChild,jid=null;
+  function joyMove(e){var r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.hypot(dx,dy),mx=r.width/2-12;if(l>mx){dx*=mx/l;dy*=mx/l;}knob.style.transform='translate('+dx+'px,'+dy+'px)';joy.x=dx/mx;joy.y=dy/mx;}
+  joyEl.addEventListener('pointerdown',function(e){if(mode==='tour')setMode('walk');jid=e.pointerId;joyEl.setPointerCapture(jid);joyMove(e);});
+  joyEl.addEventListener('pointermove',function(e){if(e.pointerId===jid)joyMove(e);});
+  function joyEnd(){jid=null;joy.x=joy.y=0;knob.style.transform='';}
+  joyEl.addEventListener('pointerup',joyEnd);joyEl.addEventListener('pointercancel',joyEnd);
+
+  // ---------- Loop ----------
+  function resize(){var w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.fov=(mode==='top'?42:(w<h?78:62));camera.updateProjectionMatrix();}
+  addEventListener('resize',resize);
+  camera.position.fromArray(TOPV.pos);controls.target.fromArray(TOPV.tgt);
+  var clock=new THREE.Clock(),dir=new THREE.Vector3(),lastWhere='';
+  function ease(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+  function frame(){
+    var dt=Math.min(clock.getDelta(),0.05);
+    if(mode==='top'){
+      if(tween){tween.t=Math.min(1,tween.t+dt/1.2);var k=ease(tween.t);camera.position.lerpVectors(tween.fp,tween.tp,k);controls.target.lerpVectors(tween.ft,tween.tt,k);if(tween.t>=1)tween=null;}
+      controls.update();
+    }else{
+      if(mode==='tour'&&tour){
+        tour.s+=dt*0.55;var u=Math.min(tour.s/tourLen,1);
+        var p=curve.getPointAt(u),ahead=curve.getPointAt(Math.min(u+0.012,1));
+        pos.copy(p);var ty=Math.atan2(ahead.x-p.x,ahead.z-p.z);
+        if(u<1){var dy=ty-yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;yaw+=dy*Math.min(1,dt*2.2);}
+        pitch+=(-0.06-pitch)*Math.min(1,dt*2);
+        if(u>=1){setMode('walk');}
+      }else{
+        var f=(keys['w']||keys['arrowup']?1:0)-(keys['s']||keys['arrowdown']?1:0)-joy.y;
+        var st=(keys['d']?1:0)-(keys['a']?1:0)+joy.x;
+        if(keys['arrowleft'])yaw+=dt*1.6;if(keys['arrowright'])yaw-=dt*1.6;
+        if(Math.abs(f)>0.05||Math.abs(st)>0.05){
+          var sp=1.3*dt,sx=Math.sin(yaw),sz=Math.cos(yaw);
+          var nx=pos.x+(sx*f-sz*st)*sp,nz=pos.z+(sz*f+sx*st)*sp;
+          if(free(nx,pos.z))pos.x=nx;if(free(pos.x,nz))pos.z=nz;
+        }
+      }
+      camera.position.set(pos.x,EYE,pos.z);
+      dir.set(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch));
+      camera.lookAt(pos.x+dir.x,EYE+dir.y,pos.z+dir.z);
+      walkLight.position.set(pos.x,2.3,pos.z);
+      var a=areaAt(pos.x,pos.z),w=a&&a!=='door'?NAMES[a]:lastWhere;if(w!==lastWhere){lastWhere=w;where.textContent='📍 '+w;}
+    }
+    var fovT=(mode==='top'?42:(stage.clientWidth<stage.clientHeight?78:62));if(Math.abs(camera.fov-fovT)>0.1){camera.fov+=(fovT-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();}
+    renderer.render(scene,camera);placeLabels();
+    requestAnimationFrame(frame);
+  }
+  resize();frame();
+  window.__api={scene:scene,ortho:function(x1,x2,z1,z2,w,h){var oc=new THREE.OrthographicCamera(x1,x2,-z1,-z2,0.1,50);oc.position.set(0,20,0);oc.up.set(0,0,-1);oc.lookAt(0,0,0);highs.forEach(function(o){o.visible=false;});ceilings.visible=false;renderer.setPixelRatio(1);renderer.setSize(w,h);renderer.render(scene,oc);var u=renderer.domElement.toDataURL('image/png');resize();return u;},setMode:setMode,go:function(x,z,y,p){pos.set(x,EYE,z);yaw=y;pitch=p||0;},cam:function(p,t,fov){camera.position.fromArray(p);controls.target.fromArray(t);if(fov){camera.fov=fov;camera.updateProjectionMatrix();}controls.update();},tour:function(u){tour={s:u*tourLen};},loaded:function(){return left===0;}};
+})();
+</script>
+</body>
+</html>
