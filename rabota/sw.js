@@ -1,5 +1,5 @@
 /* Offline shell for the Work app only (scope: this folder). Supabase requests are never cached here. */
-const CACHE = 'rabota-v3';
+const CACHE = 'rabota-v4';
 const SHELL = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png'];
 const LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js';
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all([c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))), c.add(LIB).catch(() => {})])).then(() => self.skipWaiting())); });
