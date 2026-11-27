@@ -43,7 +43,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 <div id="stage" aria-label="3D визуализация на основната баня"></div>
 <div class="card">
   <h1>Основна баня</h1>
-  <p>Мивка, вградена в шкаф с две чекмеджета, голямо огледало, конзолна тоалетна с ниши над нея, малък писуар, душ кабина със стъклена врата, ниша и смесител на стената на комина, закачалки за хавлии. LED по тавана и по пода. 301 × 139 см, таван 270 см.</p>
+  <p>Мивка, вградена във висок шкаф с три чекмеджета, голямо огледало, стояща тоалетна (плътно до стената) с ниши над нея, малък писуар, душ кабина със стъклена врата, ниша и смесител на стената на комина, закачалки за хавлии. LED по тавана и по пода. 301 × 139 см, таван 270 см.</p>
   <p class="tap">Натисни вратата, вратата на душа, чекмеджетата или огледалото.</p>
 </div>
 <div class="hint" id="hint">Влачи за завъртане, скрол или щипване за приближаване</div>
@@ -59,6 +59,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
     <button type="button" data-view="overview" aria-pressed="true">Общ изглед</button>
     <button type="button" data-view="entry" aria-pressed="false">От входа</button>
     <button type="button" data-view="sink" aria-pressed="false">Мивка</button>
+    <button type="button" data-view="toilet" aria-pressed="false">Тоалетна</button>
     <button type="button" data-view="shower" aria-pressed="false">Душ</button>
     <button type="button" data-view="top" aria-pressed="false">Отгоре</button>
     <button type="button" data-view="walk" aria-pressed="false">Разходка</button>
@@ -248,6 +249,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
   // ---------- Interactions ----------
   var inter=[],MOODS=null;
+  window._inter=inter;
   function makeInter(obj,label,apply,start){
     obj.userData.inter={t:start||0,target:start||0,label:label,apply:apply};inter.push(obj);apply(obj,start||0);
   }
@@ -263,10 +265,10 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   // Wood slat cladding on the west wall behind the vanity
   for(var s=0;s<15;s++){var sz=0.01+s*0.04;box(0,0.025,0,H,sz,sz+0.028,M.oak);}
 
-  // ---------- Vanity: floating oak cabinet with two drawers ----------
+  // ---------- Vanity: tall floating oak cabinet with three drawers ----------
   var vx1=0.05,vx2=0.95,vz=0.5;
-  box(vx1,vx1+0.02,0.45,0.84,0,vz,M.oak);box(vx2-0.02,vx2,0.45,0.84,0,vz,M.oak);
-  box(vx1,vx2,0.45,0.47,0,vz,M.oak);box(vx1,vx2,0.47,0.84,0,0.02,M.oakDark);
+  box(vx1,vx1+0.02,0.2,0.84,0,vz,M.oak);box(vx2-0.02,vx2,0.2,0.84,0,vz,M.oak);
+  box(vx1,vx2,0.2,0.22,0,vz,M.oak);box(vx1,vx2,0.22,0.84,0,0.02,M.oakDark);
   // ceramic top with a built-in rectangular bowl
   var bx1=0.28,bx2=0.72,bz1=0.11,bz2=0.42,ty1=0.84,ty2=0.9,by=0.78;
   box(vx1-0.01,vx2+0.01,ty1,ty2,0,bz1,M.ceramic);box(vx1-0.01,vx2+0.01,ty1,ty2,bz2,vz+0.02,M.ceramic);
@@ -275,8 +277,8 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   box(bx1,bx1+0.012,by,ty1,bz1,bz2,M.ceramic,{cast:false});box(bx2-0.012,bx2,by,ty1,bz1,bz2,M.ceramic,{cast:false});
   box(bx1,bx2,by,ty1,bz1,bz1+0.012,M.ceramic,{cast:false});box(bx1,bx2,by,ty1,bz2-0.012,bz2,M.ceramic,{cast:false});
   cyl(0.5,0.3,0.02,by+0.012,by+0.016,M.black,16);
-  box(vx1+0.05,vx2-0.05,0.442,0.448,vz-0.12,vz-0.1,LED.low,{cast:false,noHit:true});
-  pl(0.5,0.25,0.42,'#ffc488',{full:0.15,eve:0.35,night:0.35},1.1);
+  box(vx1+0.05,vx2-0.05,0.192,0.198,vz-0.12,vz-0.1,LED.low,{cast:false,noHit:true});
+  pl(0.5,0.12,0.42,'#ffc488',{full:0.15,eve:0.35,night:0.35},1.1);
   function drawer(y1,y2,label,items,boxTop){
     var bt=boxTop||(y2-0.03);
     var g=new THREE.Group();scene.add(g);
@@ -289,12 +291,16 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
     items(g,y1+0.022);
     makeInter(g,label,function(o,k){o.position.z=0.36*k;o.userData.inter.label=(k>0.5?'Затвори ':'Отвори ')+label;});
   }
-  drawer(0.655,0.835,'горното чекмедже',function(g,y){
+  drawer(0.665,0.835,'горното чекмедже',function(g,y){
     [[0.2,M.bottle,0.08],[0.3,M.amber,0.07],[0.4,M.pot,0.06]].forEach(function(o){cyl(o[0],0.22,0.028,y,y+o[2],o[1],16,null,g);});
     box(0.55,0.85,y,y+0.03,0.12,0.3,M.towel2,{parent:g});box(0.55,0.75,y,y+0.04,0.33,0.42,M.pot,{parent:g});
   },0.765);
-  drawer(0.465,0.645,'долното чекмедже',function(g,y){
+  drawer(0.445,0.655,'средното чекмедже',function(g,y){
     for(var i=0;i<5;i++){var tw=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.34,20),i%2?M.towel:M.towel2);tw.rotation.x=Math.PI/2;tw.position.set(0.16+i*0.13,y+0.05,0.27);tw.castShadow=true;g.add(tw);}
+  });
+  drawer(0.225,0.435,'долното чекмедже',function(g,y){
+    [[0.17,M.bottle,0.16],[0.27,M.amber,0.14],[0.37,M.bottle,0.17]].forEach(function(o){cyl(o[0],0.2,0.035,y,y+o[2],o[1],16,null,g);});
+    box(0.5,0.85,y,y+0.12,0.12,0.42,M.pot,{parent:g});box(0.52,0.83,y+0.12,y+0.15,0.14,0.4,M.towel2,{parent:g});
   });
 
   // deck-mounted black mixer behind the bowl
@@ -354,8 +360,9 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   // flush plate, base LED
   box(1.36,1.54,0.95,1.08,pz,pz+0.008,M.black);box(1.449,1.451,0.96,1.07,pz+0.008,pz+0.009,M.matteBlack,{cast:false});
   box(px1+0.02,px2-0.02,0.012,0.022,pz+0.001,pz+0.008,LED.low,{cast:false,noHit:true});
-  // wall-hung toilet
-  var bowl=cyl(1.45,0.47,0.175,0.22,0.4,M.ceramic,48,0.18);bowl.scale.z=1.42;
+  // floor-standing back-to-wall toilet (ceramic body down to the floor, flush to the pier)
+  var bowl=cyl(1.45,0.47,0.15,0,0.4,M.ceramic,48,0.18);bowl.scale.z=1.42;
+  box(1.3,1.6,0,0.4,pz,0.47,M.ceramic);
   var seat=cyl(1.45,0.47,0.18,0.4,0.43,M.ceramic,48,0.18);seat.scale.z=1.42;
   // bidet hand shower on the pier side
   box(px2,px2+0.02,0.7,0.76,0.1,0.14,M.black);cyl(px2+0.035,0.12,0.012,0.6,0.78,M.black,12);cyl(px2+0.03,0.12,0.006,0.3,0.6,M.black,8);
@@ -439,7 +446,8 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   var views={
     overview:{pos:[W/2+1.3,3.5,D+2.6],tgt:[W/2,0.8,D/2]},
     entry:{pos:[0.3,1.6,1.05],tgt:[2.9,1.1,0.45]},
-    sink:{pos:[1.0,1.6,1.25],tgt:[0.45,1.15,0.0]},
+    sink:{pos:[1.3,1.45,1.02],tgt:[0.42,0.7,0.12]},
+    toilet:{pos:[0.75,1.5,1.05],tgt:[1.5,0.45,0.3]},
     shower:{pos:[1.65,1.6,1.25],tgt:[2.6,1.15,0.3]},
     top:{pos:[W/2,6.0,D/2+0.01],tgt:[W/2,0,D/2]}
   };
