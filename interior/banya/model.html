@@ -44,7 +44,7 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 <div id="stage" aria-label="3D визуализация на основната баня"></div>
 <div class="card">
   <h1>Основна баня</h1>
-  <p>Мивка, вградена във висок шкаф с три чекмеджета, голямо огледало, стояща тоалетна (плътно до стената) с ниши над нея, малък писуар, душ кабина със стъклена врата, ниша и смесител на стената на комина, закачалки за хавлии. LED по тавана и по пода. 301 × 139 см, таван 270 см.</p>
+  <p>Мивка, вградена във висок шкаф с три чекмеджета, голямо огледало, стояща тоалетна (плътно до стената) с ниши над нея, малък писуар, душ кабина с напълно прозрачен стъклен параван от пода до тавана и врата (затваря се плътно, водата не излиза), ниша и смесител на стената на комина, закачалки за хавлии. LED по тавана и по пода. 301 × 139 см, таван 270 см.</p>
   <p class="tap">Натисни вратата, вратата на душа, чекмеджетата или огледалото.</p>
 </div>
 <div class="hint" id="hint">Влачи за завъртане, скрол или щипване за приближаване</div>
@@ -389,23 +389,24 @@ button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
   scene.children.slice(southStart).forEach(function(o){walls.S.add(o);});
   walls.S.add(doorG);
-  // ---------- Walk-in shower ----------
-  var gx=ch1,gz0=CZ,gz=0.9,gh=2.0;
-  box(gx-0.004,gx+0.004,0.005,gh,gz0+0.01,gz,glass,{cast:false,noHit:true});
-  box(gx-0.012,gx+0.012,0,gh,gz0,gz0+0.02,M.black);
-  box(gx-0.006,gx+0.006,0,gh,gz-0.012,gz,M.black);
-  box(gx-0.006,gx+0.006,0,0.012,gz0+0.01,gz,M.black);
-  box(gx-0.006,gx+0.006,gh-0.012,gh,gz0+0.01,gz,M.black);
-  var sdW=D-gz-0.015;
+  // ---------- Shower: clear glass from floor to ceiling, fixed panel + door, fully enclosed ----------
+  var gx=ch1,gz0=CZ,gz=0.9,gh=H-0.004;
+  var clear=std({color:'#f4fafa',roughness:0.02,metalness:0.1,transparent:true,opacity:0.09,depthWrite:false,side:THREE.DoubleSide});
+  box(gx-0.004,gx+0.004,0.012,gh-0.012,gz0+0.01,gz,clear,{cast:false,noHit:true});
+  // slim floor and ceiling channels + wall profile (seal the glass all round)
+  box(gx-0.01,gx+0.01,0,0.012,gz0,D,M.black,{cast:false});
+  box(gx-0.01,gx+0.01,gh-0.012,H,gz0,D,M.black,{cast:false});
+  box(gx-0.008,gx+0.008,0.012,gh-0.012,gz0,gz0+0.012,M.black,{cast:false});
+  box(gx-0.006,gx+0.006,0.012,gh-0.012,gz-0.008,gz,M.black,{cast:false});
+  box(gx-0.008,gx+0.008,0.012,gh-0.012,D-0.012,D,M.black,{cast:false});
+  var sdW=D-gz-0.02;
   var sdG=new THREE.Group();sdG.position.set(gx,0,gz+0.004);scene.add(sdG);
-  box(-0.004,0.004,0.015,gh,0,sdW,glass,{parent:sdG,cast:false});
-  box(-0.006,0.006,0.015,gh,sdW-0.012,sdW,M.black,{parent:sdG});
-  box(-0.006,0.006,gh-0.012,gh,0,sdW,M.black,{parent:sdG});
-  box(-0.006,0.006,0.015,0.027,0,sdW,M.black,{parent:sdG});
+  box(-0.004,0.004,0.016,gh-0.016,0,sdW,clear,{parent:sdG,cast:false});
+  box(-0.007,0.007,0.016,0.03,0,sdW,std({color:'#e8eeee',roughness:0.3,transparent:true,opacity:0.5}),{parent:sdG,cast:false}); // drip seal
+  box(-0.006,0.006,0.016,gh-0.016,sdW-0.008,sdW,M.black,{parent:sdG}); // magnetic seal
   box(-0.05,0.05,0.95,1.35,sdW-0.07,sdW-0.055,M.black,{parent:sdG});
-  [[-0.03,1.6],[-0.03,0.35]].forEach(function(q){box(-0.012,0.012,q[1],q[1]+0.07,-0.012,0.025,M.black,{parent:sdG});});
+  [[-0.03,1.9],[-0.03,0.35]].forEach(function(q){box(-0.012,0.012,q[1],q[1]+0.07,-0.012,0.025,M.black,{parent:sdG});});
   makeInter(sdG,'Врата на душа',function(o,k){o.rotation.y=-1.45*k;o.userData.inter.label=(k>0.5?'Затвори':'Отвори')+' вратата на душа';});
-  var bar=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,W-gx,10),M.black);bar.rotation.z=Math.PI/2;bar.position.set((gx+W)/2,gh-0.01,gz-0.006);scene.add(bar);
   // linear drain + floor LED strip
   box(2.86,2.92,0.001,0.004,0.36,1.32,M.matteBlack,{cast:false});
   for(var dr=0;dr<24;dr++){box(2.87,2.91,0.0035,0.0045,0.37+dr*0.039,0.38+dr*0.039,M.black,{cast:false});}

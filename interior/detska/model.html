@@ -118,6 +118,26 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
       }
     },[W/2.2,D/2.2]);
   }
+  // Laminate (same as the corridor): warm oak planks 20 x 138 cm; one texture tile = 2.76 x 1.20 m
+  function laminate(){
+    var r=rnd(29),offs=[0,0.37,0.71,0.18,0.55,0.86],tones=['#c39a6b','#b98f60','#c8a274','#b48a5c','#bf9566','#c59e70'];
+    var t=canvasTex(2048,1024,function(g,Wc,Hc){
+      var rows=6,rh=Hc/rows,bl=Wc/2;
+      for(var q=0;q<rows;q++){var y=q*rh;
+        for(var k=-1;k<3;k++){var x=(k+offs[q])*bl;
+          g.save();g.beginPath();g.rect(Math.max(0,x),y,bl,rh);g.clip();
+          g.fillStyle=tones[(q*3+k+6)%tones.length];g.fillRect(x,y,bl,rh);
+          for(var i=0;i<26;i++){var y0=y+r()*rh,amp=2+r()*6,fr=0.003+r()*0.006,ph=r()*6;
+            g.strokeStyle=r()<0.5?'#7a5432':'#d9b78c';g.globalAlpha=0.06+r()*0.14;g.lineWidth=0.8+r()*2;g.beginPath();
+            for(var xx=x;xx<=x+bl;xx+=12){var yy=y0+Math.sin(xx*fr+ph)*amp;if(xx===x)g.moveTo(xx,yy);else g.lineTo(xx,yy);}g.stroke();}
+          g.globalAlpha=1;g.restore();
+          g.fillStyle='rgba(70,45,25,.55)';g.fillRect(((x%Wc)+Wc)%Wc,y,2,rh);
+        }
+        g.fillStyle='rgba(70,45,25,.45)';g.fillRect(0,y,Wc,2);
+      }
+    });
+    t.repeat.set(W/2.76,D/1.2);return t;
+  }
   function std(o){return new THREE.MeshStandardMaterial(o);}
   var M={
     wall:std({color:'#ece6dc',roughness:0.95}),
@@ -165,7 +185,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   // ---------- Shell ----------
   var ground=new THREE.Mesh(new THREE.PlaneGeometry(40,40),M.ground);
   ground.rotation.x=-Math.PI/2;ground.position.set(W/2,-0.005,D/2);ground.receiveShadow=true;scene.add(ground);
-  var floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D),std({map:planks(),roughness:0.55}));
+  var floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D),std({map:laminate(),roughness:0.5}));
   floor.rotation.x=-Math.PI/2;floor.position.set(W/2,0.001,D/2);floor.receiveShadow=true;scene.add(floor);
   var walls={N:new THREE.Group(),S:new THREE.Group(),Wt:new THREE.Group(),E:new THREE.Group()};
   var wallMats={};
