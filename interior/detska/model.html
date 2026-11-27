@@ -42,7 +42,7 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
 <div id="stage" aria-label="3D визуализация на детската стая"></div>
 <div class="card">
   <h1>Детска стая</h1>
-  <p>Кошара-легло 70 × 140, скрин с повивалник, гардероб, люлеещ се стол за кърмене до прозорците, кът за четене и рафт за играчки. Вратата срещу прозорците е към терасата. ≈ 285 × 430 см, таван 270 см.</p>
+  <p>Кошара-легло 70 × 140, скрин с повивалник, гардероб, люлеещ се стол за кърмене до прозорците, кът за четене и рафт за играчки. Вратата в долния десен ъгъл е към терасата, прозорците са до нея. ≈ 285 × 430 см, таван 270 см.</p>
 </div>
 <div class="hint">Влачи за завъртане, скрол или щипване за приближаване</div>
 <div class="bar">
@@ -170,14 +170,14 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   Object.keys(walls).forEach(function(k){wallMats[k]=M.wall.clone();scene.add(walls[k]);});
   function wb(side,x1,x2,y1,y2,z1,z2){box(x1,x2,y1,y2,z1,z2,wallMats[side],{parent:walls[side]});}
   var DH=2.05;
-  // North wall: balcony door to the terrace 186,5 → 275 (88,5 cm)
-  wb('N',-T,1.865,0,H,-T,0);wb('N',1.865,2.75,DH+0.15,H,-T,0);wb('N',2.75,W+T,0,H,-T,0);
+  // North wall: entrance from the corridor 186,5 → 275 (88,5 cm)
+  wb('N',-T,1.865,0,H,-T,0);wb('N',1.865,2.75,DH,H,-T,0);wb('N',2.75,W+T,0,H,-T,0);
   // West wall (plain)
   wb('Wt',-T,0,0,H,0,D);
   // South wall: windows 35 → 215, sill 85
   var WN1=0.35,WN2=2.15;
   wb('S',-T,WN1,0,H,D,D+T);wb('S',WN1,WN2,0,0.85,D,D+T);wb('S',WN1,WN2,2.4,H,D,D+T);wb('S',WN2,W+T,0,H,D,D+T);
-  // East wall with the 15,5 cm step; entrance door 357,5 → 426
+  // East wall with the 15,5 cm step; balcony door to the terrace 357,5 → 426
   wb('E',W,W+T,0,H,-T,STEPZ);
   wb('E',WX,W+T,0,H,STEPZ,3.575);wb('E',WX,W+T,DH,H,3.575,4.26);wb('E',WX,W+T,0,H,4.26,D+T);
   var ceilMat=M.ceiling.clone();
@@ -185,17 +185,15 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   // skirting
   box(0,1.865,0,0.07,0,0.012,M.white,{cast:false});box(0,0.012,0,0.07,0,D,M.white,{cast:false});box(0,WX,0,0.07,D-0.012,D,M.white,{cast:false});
 
-  // Balcony door (glazed, white frame)
-  var BDH=DH+0.15;
-  box(1.865,2.75,BDH-0.001,BDH,-T,0,M.white,{parent:walls.N,cast:false});
-  box(1.865,2.75,0.12,BDH-0.08,-0.1,-0.09,glass,{parent:walls.N,cast:false});
-  [[1.865,1.93,0,BDH],[2.685,2.75,0,BDH],[1.865,2.75,BDH-0.08,BDH],[1.865,2.75,0,0.12]].forEach(function(a){box(a[0],a[1],a[2],a[3],-0.12,-0.06,M.frame,{parent:walls.N});});
-  box(2.62,2.65,0.98,1.12,-0.06,-0.03,M.brass,{parent:walls.N});
+  // Entrance door from the corridor (light oak) + frame
+  box(1.865,2.75,0,DH,-0.1,-0.06,M.oak,{parent:walls.N});box(1.93,2.0,0.99,1.01,-0.05,-0.02,M.brass,{parent:walls.N});
+  box(1.84,1.865,0,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});box(2.75,2.775,0,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});box(1.84,2.775,DH,DH+0.03,-0.02,0.01,M.white,{parent:walls.N});
+  // Balcony door to the terrace (glazed, white frame) on the stepped east wall
+  box(WX+0.09,WX+0.1,0.12,DH-0.08,3.575,4.26,glass,{parent:walls.E,cast:false});
+  [[0,DH,3.575,3.64],[0,DH,4.195,4.26],[DH-0.08,DH,3.575,4.26],[0,0.12,3.575,4.26]].forEach(function(a){box(WX+0.06,WX+0.12,a[0],a[1],a[2],a[3],M.frame,{parent:walls.E});});
+  box(WX+0.03,WX+0.06,0.98,1.12,3.66,3.69,M.brass,{parent:walls.E});
   // terrace railing outside
-  box(1.2,4.0,0.96,1.0,-1.6,-1.56,M.black);for(var rx=1.2;rx<=4.0;rx+=0.12)box(rx,rx+0.015,0,0.96,-1.59,-1.57,M.black);
-  // Entrance door (light oak) + frame
-  box(WX+0.06,WX+0.1,0,DH,3.575,4.26,M.oak,{parent:walls.E});box(WX+0.02,WX+0.05,0.99,1.01,3.64,3.71,M.brass,{parent:walls.E});
-  box(WX-0.01,WX+0.02,0,DH+0.03,3.55,3.575,M.white,{parent:walls.E});box(WX-0.01,WX+0.02,0,DH+0.03,4.26,4.285,M.white,{parent:walls.E});box(WX-0.01,WX+0.02,DH,DH+0.03,3.55,4.285,M.white,{parent:walls.E});
+  box(W+1.4,W+1.44,0.96,1.0,2.6,6.0,M.black);for(var rz=2.6;rz<=6.0;rz+=0.12)box(W+1.41,W+1.43,0,0.96,rz,rz+0.015,M.black);
 
   // Windows (south wall, two sashes)
   box(WN1-0.02,WN2+0.02,0.83,0.86,D-0.04,D+0.04,M.white,{parent:walls.S});
@@ -343,8 +341,8 @@ button:focus-visible{outline:2px solid #d9a760;outline-offset:2px}
   // ---------- Views ----------
   var views={
     overview:{pos:[W+2.3,4.6,D+2.4],tgt:[W/2,0.5,D/2]},
-    entry:{pos:[2.45,1.55,3.95],tgt:[0.4,0.9,1.3]},
-    door2:{pos:[2.3,1.6,0.2],tgt:[0.6,0.8,3.6]},
+    entry:{pos:[2.3,1.6,0.2],tgt:[0.6,0.8,3.6]},
+    door2:{pos:[2.45,1.55,3.95],tgt:[0.4,0.9,1.3]},
     window:{pos:[1.7,1.5,4.05],tgt:[0.9,0.8,0.3]},
     crib:{pos:[2.0,1.6,3.3],tgt:[0.3,0.6,1.9]},
     top:{pos:[W/2,7.5,D/2+0.01],tgt:[W/2,0,D/2]}
