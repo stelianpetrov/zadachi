@@ -959,5 +959,6 @@ setTone(0);
 function cam(p, t, fov = 50) { walk = false; controls.enabled = true; tween = null; view = 'eye'; camera.fov = fov; camera.updateProjectionMatrix(); camera.position.set(...p); controls.target.set(...t); controls.update(); }
 window.__api = { cam, setTone, ui: v => { for (const id of ['bar', 'hint']) document.getElementById(id).style.display = v ? '' : 'none'; }, setView, setMode, openAll, eye, checkOverlaps, ready: true };
 </script>
+<script src="../../room-switch.js?v=rs1"></script>
 </body>
 </html>
