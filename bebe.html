@@ -278,7 +278,7 @@ function render() {
 }
 
 function listView(dis) {
-  const F = [['all', 'Всички'], ['todo', 'За купуване'], ['ordered', 'Поръчани'], ['bought', 'Купени'], ['high', 'Важни']];
+  const F = [['all', 'Всички'], ['todo', 'За купуване'], ['ordered', 'Поръчани'], ['bought', 'Купени']];
   let h = `<div class="tools"><div class="chips" role="group" aria-label="Филтър">${F.map(([v, l]) => `<button class="chipbtn" data-act="filter" data-v="${v}" aria-pressed="${S.filter === v}">${l}</button>`).join('')}</div>
     <input class="search" id="search" type="search" placeholder="Търси…" value="${esc(S.q)}" aria-label="Търси в списъка"></div>`;
   const cats = catsSorted();

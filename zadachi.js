@@ -377,7 +377,8 @@ function leaveView(dis) {
   // past leave days are hidden everywhere (data stays in the db, only the view skips them)
   const tk = today(), dates = Object.values(S.leave).map(v => v.date).filter(d => d && d >= tk).sort();
   const cm = tk.slice(0, 7);
-  let start = cm;
+  // November 2026 is hidden on request; the calendar starts from December 2026 at the earliest
+  let start = [cm, '2026-12'].sort().pop();
   let end = [dates.length ? dates[dates.length - 1].slice(0, 7) : cm, '2026-12'].sort().pop();
   const months = []; let [y, m] = start.split('-').map(Number); const [ey, em] = end.split('-').map(Number);
   let guard = 0;
