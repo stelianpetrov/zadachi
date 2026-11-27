@@ -191,7 +191,7 @@ body.walk #joy{display:block}
   var loader=new THREE.GLTFLoader(),left=Object.keys(ROOMS).length,highs=[];
   Object.keys(ROOMS).forEach(function(k){
     var r=ROOMS[k];
-    loader.load('glb/'+r.file+'.glb',function(g){
+    loader.load('glb/'+r.file+'.glb?v=l1',function(g){
       var root=g.scene;root.position.set(r.x,0,r.z);
       root.traverse(function(o){
         if(o.isMesh){o.castShadow=true;o.receiveShadow=true;
