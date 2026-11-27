@@ -126,6 +126,17 @@ const errs = { m: '', q: '' };
 
 function periodOf(freq) { return freq === 'm' ? mKey(view.m.y, view.m.m) : qKey(view.q.y, view.q.q); }
 function isCurrent(freq) { const t = today(); return freq === 'm' ? view.m.y === t.y && view.m.m === t.m : view.q.y === t.y && view.q.q === qOf(t.m); }
+/* Start period: the current month/quarter, or the next one once every task of the current one is ticked.
+   Finished periods are hidden (no navigating back to them); their ticks stay in the data. */
+function startIdx(freq) {
+  const t = today(), cur = freq === 'm' ? t.y * 12 + t.m : t.y * 4 + qOf(t.m) - 1;
+  const key = n => freq === 'm' ? mKey(Math.floor(n / 12), n % 12) : qKey(Math.floor(n / 4), n % 4 + 1);
+  const list = items.filter(it => it.freq === freq && (freq !== 'm' || !it.onlyQ || +it.onlyQ === qOf(cur % 12)));
+  return list.length && list.every(it => (it.done || {})[key(cur)]) ? cur + 1 : cur;
+}
+function viewIdx(freq) { return freq === 'm' ? view.m.y * 12 + view.m.m : view.q.y * 4 + view.q.q - 1; }
+function setIdx(freq, n) { if (freq === 'm') view.m = { y: Math.floor(n / 12), m: n % 12 }; else view.q = { y: Math.floor(n / 4), q: n % 4 + 1 }; }
+function atStart(freq) { return viewIdx(freq) === startIdx(freq); }
 function cmpPeriod(freq) { // -1 past, 0 current, 1 future
   const t = today(), a = freq === 'm' ? view.m.y * 12 + view.m.m : view.q.y * 4 + view.q.q, b = freq === 'm' ? t.y * 12 + t.m : t.y * 4 + qOf(t.m);
   return Math.sign(a - b);
@@ -189,8 +200,8 @@ function sectionHtml(freq) {
   return `<div class="sec-head">
       <h2>${freq === 'm' ? 'Monthly' : 'Quarterly'}</h2>
       <div class="pnav">
-        ${isCurrent(freq) ? '' : `<button class="pnow" type="button" data-act="now">${freq === 'm' ? 'This month' : 'This quarter'}</button>`}
-        <button class="iconbtn" type="button" data-act="prev" aria-label="Previous period">‹</button>
+        ${atStart(freq) ? '' : `<button class="pnow" type="button" data-act="now">${freq === 'm' ? 'This month' : 'This quarter'}</button>`}
+        <button class="iconbtn" type="button" data-act="prev" aria-label="Previous period"${atStart(freq) ? ' disabled style="visibility:hidden"' : ''}>‹</button>
         <b aria-live="polite">${label}</b>
         <button class="iconbtn" type="button" data-act="next" aria-label="Next period">›</button>
       </div>
@@ -210,6 +221,7 @@ function sectionHtml(freq) {
 function render() {
   if (!loaded) return;
   document.getElementById('state').hidden = true;
+  ['m', 'q'].forEach(f => { if (viewIdx(f) < startIdx(f)) setIdx(f, startIdx(f)); });
   ['m', 'q'].forEach(f => { const el = document.getElementById('sec-' + f); el.hidden = false; el.innerHTML = sectionHtml(f); });
 }
 
@@ -224,12 +236,10 @@ function wire(freq) {
     const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'FORM') return;
     const act = b.dataset.act, row = b.closest('.item'), id = row && row.dataset.id, it = items.find(x => x.id === id);
     if (act === 'prev' || act === 'next') {
-      const s = act === 'prev' ? -1 : 1;
-      if (freq === 'm') { const n = view.m.y * 12 + view.m.m + s; view.m = { y: Math.floor(n / 12), m: n % 12 }; }
-      else { const n = view.q.y * 4 + view.q.q - 1 + s; view.q = { y: Math.floor(n / 4), q: n % 4 + 1 }; }
+      setIdx(freq, Math.max(startIdx(freq), viewIdx(freq) + (act === 'prev' ? -1 : 1)));
       editing = null; armed = null; render(); return;
     }
-    if (act === 'now') { const t = today(); if (freq === 'm') view.m = { y: t.y, m: t.m }; else view.q = { y: t.y, q: qOf(t.m) }; render(); return; }
+    if (act === 'now') { setIdx(freq, startIdx(freq)); render(); return; }
     if (act === 'tick' && it) {
       const p = periodOf(freq), done = Object.assign({}, it.done || {});
       if (b.checked) done[p] = new Date().toISOString(); else delete done[p];
