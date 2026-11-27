@@ -1,0 +1,573 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Основна баня 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: full-screen 3D stage, floating info card top-left, controls bottom-centre, walk pad bottom-right */
+:root{
+  --ink:#f3efe8;--muted:#c4bcb0;--panel:rgba(32,28,25,.78);--line:rgba(255,255,255,.12);
+  --hover:rgba(255,255,255,.08);--on:#e6dccb;--on-ink:#2a2420;--bg:#1c1917;--focus:#d9a760;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){--ink:#2a2420;--muted:#5f564d;--panel:rgba(250,247,242,.86);--line:rgba(42,36,32,.14);--hover:rgba(42,36,32,.06);--on:#3b2f27;--on-ink:#f3efe8;--bg:#e7e1d8;color-scheme:light}
+}
+:root[data-theme="light"]{--ink:#2a2420;--muted:#5f564d;--panel:rgba(250,247,242,.86);--line:rgba(42,36,32,.14);--hover:rgba(42,36,32,.06);--on:#3b2f27;--on-ink:#f3efe8;--bg:#e7e1d8;color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Onest","Segoe UI","Helvetica Neue",sans-serif}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.card{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(20px + env(safe-area-inset-top,0px));background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;padding:16px 18px;max-width:min(340px,calc(100% - 40px))}
+.card h1{margin:0 0 4px;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.card p{margin:0;font-size:14px;line-height:1.45;color:var(--muted)}
+.card .tap{margin-top:8px;color:var(--ink)}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:max-content;max-width:calc(100% - 24px)}
+.group{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;padding:4px;background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px}
+button{font:inherit;font-size:14px;font-weight:500;color:var(--ink);background:transparent;border:0;border-radius:9px;padding:0 14px;min-height:40px;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:hover{background:var(--hover)}
+button[aria-pressed="true"]{background:var(--on);color:var(--on-ink)}
+button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.hint{position:fixed;right:max(20px,env(safe-area-inset-right,0px));top:calc(20px + env(safe-area-inset-top,0px));font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;max-width:300px}
+#tip{position:fixed;pointer-events:none;font-size:13px;font-weight:500;background:var(--on);color:var(--on-ink);padding:5px 9px;border-radius:7px;transform:translate(14px,14px);white-space:nowrap}
+.pad{position:fixed;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(90px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:4px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.pad button{padding:0;min-height:48px;font-size:18px;background:var(--hover);touch-action:none}
+.pad .up{grid-column:2}
+.pad .left{grid-column:1;grid-row:2}.pad .down{grid-column:2;grid-row:2}.pad .right{grid-column:3;grid-row:2}
+@media (max-width:760px){.hint{display:none}.card{padding:12px 14px}.card h1{font-size:17px}.card p{font-size:13px}button{padding:0 10px;font-size:13px}.pad{bottom:calc(150px + env(safe-area-inset-bottom,0px))}}
+[hidden]{display:none!important}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+</style>
+
+<div id="stage" aria-label="3D визуализация на основната баня"></div>
+<div class="card">
+  <h1>Основна баня</h1>
+  <p>Мивка, вградена в шкаф с две чекмеджета, голямо огледало, конзолна тоалетна с ниши над нея, малък писуар, душ кабина със стъклена врата, ниша и смесител на стената на комина, закачалки за хавлии. LED по тавана и по пода. 301 × 139 см, таван 270 см.</p>
+  <p class="tap">Натисни вратата, вратата на душа, чекмеджетата или огледалото.</p>
+</div>
+<div class="hint" id="hint">Влачи за завъртане, скрол или щипване за приближаване</div>
+<div id="tip" hidden></div>
+<div class="pad" id="pad" hidden aria-label="Движение">
+  <button type="button" class="up" data-move="f" aria-label="Напред">▲</button>
+  <button type="button" class="left" data-move="tl" aria-label="Завий наляво">◀</button>
+  <button type="button" class="down" data-move="b" aria-label="Назад">▼</button>
+  <button type="button" class="right" data-move="tr" aria-label="Завий надясно">▶</button>
+</div>
+<div class="bar">
+  <div class="group" role="group" aria-label="Гледна точка">
+    <button type="button" data-view="overview" aria-pressed="true">Общ изглед</button>
+    <button type="button" data-view="entry" aria-pressed="false">От входа</button>
+    <button type="button" data-view="sink" aria-pressed="false">Мивка</button>
+    <button type="button" data-view="shower" aria-pressed="false">Душ</button>
+    <button type="button" data-view="top" aria-pressed="false">Отгоре</button>
+    <button type="button" data-view="walk" aria-pressed="false">Разходка</button>
+  </div>
+  <div class="group" role="group" aria-label="Осветление">
+    <button type="button" data-mood="full" aria-pressed="false">Ярко</button>
+    <button type="button" data-mood="eve" aria-pressed="true">Вечер</button>
+    <button type="button" data-mood="night" aria-pressed="false">Нощ</button>
+  </div>
+</div>
+<div id="err">3D изгледът изисква WebGL. Отвори страницата в актуален браузър.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  if(!window.THREE){document.getElementById('err').style.display='flex';return;}
+  // Room: x along the long side (3.01), z across (1.39). North wall z=0 (sink, toilet, shower), door on west wall.
+  var W=3.01,D=1.39,H=2.7,T=0.2;
+  var stage=document.getElementById('stage');
+  var renderer;
+  try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(e){document.getElementById('err').style.display='flex';return;}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  stage.appendChild(renderer.domElement);
+  var maxAniso=renderer.capabilities.getMaxAnisotropy();
+
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(55,stage.clientWidth/stage.clientHeight,0.03,60);
+  camera.rotation.order='YXZ';
+  var controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.dampingFactor=0.08;
+  controls.minDistance=0.3;controls.maxDistance=10;controls.maxPolarAngle=Math.PI*0.495;
+
+  // ---------- Procedural textures ----------
+  function rnd(seed){var s=seed;return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
+  function canvasTex(w,h,draw){
+    var c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);
+    var t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=maxAniso;
+    t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+  }
+  function woodTex(base,dark,seed){
+    return canvasTex(512,1024,function(g,w,h){
+      var r=rnd(seed);g.fillStyle=base;g.fillRect(0,0,w,h);
+      for(var i=0;i<220;i++){
+        var x=r()*w,wd=0.5+r()*2.5;g.globalAlpha=0.05+r()*0.12;g.fillStyle=dark;
+        g.beginPath();g.moveTo(x,0);
+        for(var y=0;y<=h;y+=64){g.lineTo(x+Math.sin(y*0.006+i)*6*r(),y);}
+        g.lineTo(x+wd,h);g.lineTo(x+wd,0);g.fill();
+      }
+      g.globalAlpha=1;
+    });
+  }
+  // Large-format stone tiles: canvas = 2 x 4 tiles of 120 x 60 cm (2.4 x 2.4 m)
+  function tileTex(base,vein,grout,seed){
+    return canvasTex(1024,1024,function(g,w,h){
+      var r=rnd(seed);g.fillStyle=base;g.fillRect(0,0,w,h);
+      for(var t=0;t<8;t++){
+        var tx=(t%2)*512,ty=Math.floor(t/2)*256,sh=(r()-0.5)*10;
+        g.fillStyle='rgba('+(sh>0?255:0)+','+(sh>0?255:0)+','+(sh>0?255:0)+','+Math.abs(sh)/100+')';g.fillRect(tx,ty,512,256);
+      }
+      for(var i=0;i<60;i++){
+        g.globalAlpha=0.03+r()*0.06;g.strokeStyle=vein;g.lineWidth=1+r()*3;
+        g.beginPath();var x=r()*w,y=r()*h;g.moveTo(x,y);
+        for(var k=0;k<6;k++){x+=(r()-0.3)*160;y+=(r()-0.5)*60;g.lineTo(x,y);}g.stroke();
+      }
+      for(var k2=0;k2<4000;k2++){g.globalAlpha=r()*0.06;g.fillStyle=r()>0.5?vein:'#ffffff';g.fillRect(r()*w,r()*h,1+r()*2,1);}
+      g.globalAlpha=1;g.fillStyle=grout;
+      for(var gx=0;gx<=w;gx+=512){g.fillRect(gx-1,0,2,h);}
+      for(var gy=0;gy<=h;gy+=256){g.fillRect(0,gy-1,w,2);}
+    });
+  }
+  var wallTile=tileTex('#d6ccbe','#a8977f','#b9ad9c',11);
+  var floorTile=tileTex('#bfb3a2','#8c7b64','#a39684',23);
+  function tileMat(tex,w,h,rough){
+    var t=tex.clone();t.needsUpdate=true;t.repeat.set(w/2.4,h/2.4);
+    return new THREE.MeshStandardMaterial({map:t,roughness:rough||0.6});
+  }
+
+  function std(o){return new THREE.MeshStandardMaterial(o);}
+  var M={
+    shell:std({color:'#cfc5b7',roughness:0.95}),
+    ceiling:std({color:'#efe9df',roughness:0.95}),
+    oak:std({map:woodTex('#a98560','#5b4029',3),roughness:0.55}),
+    oakDark:std({map:woodTex('#8a6a4b','#3e2a1a',5),roughness:0.5}),
+    stone:std({color:'#d9cfc1',roughness:0.35}),
+    ceramic:std({color:'#f6f4f0',roughness:0.12}),
+    black:std({color:'#151413',roughness:0.35,metalness:0.4}),
+    matteBlack:std({color:'#1d1c1a',roughness:0.7}),
+    towel:std({color:'#e4ddd2',roughness:1}),
+    towel2:std({color:'#bfb2a1',roughness:1}),
+    bottle:std({color:'#2b2420',roughness:0.25}),
+    amber:std({color:'#6a4a2e',roughness:0.2}),
+    leaf:std({color:'#55704a',roughness:0.9}),
+    pot:std({color:'#e7e0d4',roughness:0.6}),
+    ground:std({color:'#26221e',roughness:1}),
+    groutDark:std({color:'#2a2622',roughness:0.8})
+  };
+  var glass=std({color:'#e3eeec',roughness:0.05,transparent:true,opacity:0.16,depthWrite:false,side:THREE.DoubleSide});
+  // Emissive groups so each LED zone can be dimmed per mood
+  function ledMat(c){return std({color:'#fff1d6',emissive:c||'#ffc98a',emissiveIntensity:0});}
+  var LED={top:ledMat(),low:ledMat('#ffbf7a'),niche:ledMat(),mirror:ledMat('#ffd29a'),pend:ledMat('#ffd6a0'),down:ledMat('#fff0dc')};
+
+  function box(x1,x2,y1,y2,z1,z2,mat,opt){
+    opt=opt||{};
+    var m=new THREE.Mesh(new THREE.BoxGeometry(Math.abs(x2-x1),Math.abs(y2-y1),Math.abs(z2-z1)),mat);
+    m.position.set((x1+x2)/2,(y1+y2)/2,(z1+z2)/2);
+    m.castShadow=opt.cast!==false;m.receiveShadow=true;(opt.parent||scene).add(m);
+    if(opt.noHit)m.userData.noHit=true;
+    return m;
+  }
+  function cyl(x,z,r,y1,y2,mat,seg,r2,parent){
+    var m=new THREE.Mesh(new THREE.CylinderGeometry(r2==null?r:r2,r,y2-y1,seg||32),mat);
+    m.position.set(x,(y1+y2)/2,z);m.castShadow=true;m.receiveShadow=true;(parent||scene).add(m);return m;
+  }
+  // Wall-face plane: rotY 0 faces +z, PI faces -z, PI/2 faces +x, -PI/2 faces -x
+  function face(cx,cy,cz,w,h,rotY,mat,parent){
+    var m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
+    m.position.set(cx,cy,cz);m.rotation.y=rotY;m.receiveShadow=true;(parent||scene).add(m);return m;
+  }
+  var lights=[];
+  function pl(x,y,z,color,lv,dist){var l=new THREE.PointLight(color,0,dist||2,2);l.position.set(x,y,z);l.userData.lv=lv;scene.add(l);lights.push(l);return l;}
+
+  // ---------- Shell ----------
+  var ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),M.ground);
+  ground.rotation.x=-Math.PI/2;ground.position.set(W/2,-0.01,D/2);ground.receiveShadow=true;ground.userData.noHit=true;scene.add(ground);
+  var floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D),tileMat(floorTile,W,D,0.45));
+  floor.rotation.x=-Math.PI/2;floor.position.set(W/2,0.001,D/2);floor.receiveShadow=true;scene.add(floor);
+
+  var walls={N:new THREE.Group(),S:new THREE.Group(),Wt:new THREE.Group(),E:new THREE.Group()};
+  Object.keys(walls).forEach(function(k){scene.add(walls[k]);});
+  function wb(side,x1,x2,y1,y2,z1,z2){box(x1,x2,y1,y2,z1,z2,M.shell,{parent:walls[side]});}
+  // North (sink / toilet / shower)
+  wb('N',-T,W+T,0,H,-T,0);
+  face(W/2,H/2,0.001,W,H,0,tileMat(wallTile,W,H),walls.N);
+  // South
+  // South
+  wb('S',-T,W+T,0,H,D,D+T);
+  face(W/2,H/2,D-0.001,W,H,Math.PI,tileMat(wallTile,W,H),walls.S);
+  // West with door opening z 0.62–1.39, h 2.05
+  wb('Wt',-T,0,0,H,0,0.62);wb('Wt',-T,0,2.05,H,0.62,D);
+  face(0.001,H/2,0.31,0.62,H,Math.PI/2,tileMat(wallTile,0.62,H),walls.Wt);
+  face(0.001,(2.05+H)/2,(0.62+D)/2,0.77,H-2.05,Math.PI/2,tileMat(wallTile,0.77,H-2.05),walls.Wt);
+  // East wall
+  wb('E',W,W+T,0,H,-T,D+T);
+  face(W-0.001,H/2,D/2,D,H,-Math.PI/2,tileMat(wallTile,D,H),walls.E);
+
+  // Chimney 88 × 30 in the north-east corner
+  var ch1=2.13,CZ=0.30,nx1=2.3,nx2=2.86,ny1=1.15,ny2=1.45,ND=0.08;
+  box(ch1,W,0,H,0,CZ-ND,M.shell);
+  box(ch1,nx1,0,H,CZ-ND,CZ,M.shell);box(nx2,W,0,H,CZ-ND,CZ,M.shell);
+  box(nx1,nx2,0,ny1,CZ-ND,CZ,M.shell);box(nx1,nx2,ny2,H,CZ-ND,CZ,M.shell);
+  face((ch1+nx1)/2,H/2,CZ+0.001,nx1-ch1,H,0,tileMat(wallTile,nx1-ch1,H));
+  face((nx2+W)/2,H/2,CZ+0.001,W-nx2,H,0,tileMat(wallTile,W-nx2,H));
+  face((nx1+nx2)/2,ny1/2,CZ+0.001,nx2-nx1,ny1,0,tileMat(wallTile,nx2-nx1,ny1));
+  face((nx1+nx2)/2,(ny2+H)/2,CZ+0.001,nx2-nx1,H-ny2,0,tileMat(wallTile,nx2-nx1,H-ny2));
+  // niche lining: oak back, stone sill, LED on top
+  box(nx1,nx2,ny1,ny2,CZ-ND,CZ-ND+0.01,M.oak,{cast:false});
+  box(nx1,nx2,ny1-0.005,ny1+0.005,CZ-ND,CZ+0.005,M.stone,{cast:false});
+  box(nx1+0.01,nx2-0.01,ny2-0.012,ny2-0.004,CZ-ND+0.01,CZ-ND+0.03,LED.niche,{cast:false,noHit:true});
+  pl((nx1+nx2)/2,ny2-0.05,CZ-0.02,'#ffd2a0',{full:0.25,eve:0.4,night:0.08},0.7);
+  [[2.38,0.2,M.bottle],[2.47,0.17,M.amber],[2.56,0.21,M.bottle]].forEach(function(o){cyl(o[0],CZ-0.04,0.03,ny1+0.005,ny1+0.005+o[1],o[2],20);cyl(o[0],CZ-0.04,0.008,ny1+0.005+o[1],ny1+0.03+o[1],M.black,10);});
+  for(var tw0=0;tw0<2;tw0++){var twr=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.18,20),M.towel2);twr.rotation.z=Math.PI/2;twr.position.set(2.74,ny1+0.05+tw0*0.09,CZ-0.04);scene.add(twr);}
+  face(2.129,H/2,0.15,0.3,H,-Math.PI/2,tileMat(wallTile,0.3,H));
+
+  // Ceiling with a floating panel and LED cove around it
+  var ceilingObjs=[];
+  var ceilMat=M.ceiling.clone();
+  var ceil=box(0,W,H,H+0.02,0,D,ceilMat,{cast:false});
+  ceilingObjs.push(box(0.07,W-0.07,H-0.08,H-0.04,0.07,D-0.07,M.ceiling,{cast:false}));
+  var cv=[[0.02,W-0.02,0.025,0.045],[0.02,W-0.02,D-0.045,D-0.025]];
+  cv.forEach(function(c){ceilingObjs.push(box(c[0],c[1],H-0.015,H-0.005,c[2],c[3],LED.top,{cast:false,noHit:true}));});
+  ceilingObjs.push(box(0.025,0.045,H-0.015,H-0.005,0.02,D-0.02,LED.top,{cast:false,noHit:true}));
+  ceilingObjs.push(box(W-0.045,W-0.025,H-0.015,H-0.005,0.32,D-0.02,LED.top,{cast:false,noHit:true}));
+  [[0.45,0.7],[1.5,0.15],[1.5,1.25],[2.6,0.75]].forEach(function(q){pl(q[0],H-0.12,q[1],'#ffcf94',{full:0.3,eve:0.5,night:0},1.8);});
+
+  // Recessed downlights
+  [[0.5,0.85],[1.45,1.0],[2.55,1.05]].forEach(function(q){
+    ceilingObjs.push(cyl(q[0],q[1],0.045,H-0.082,H-0.078,LED.down,24));
+    var l=new THREE.SpotLight('#ffe8cc',0,4,0.7,0.6,2);l.position.set(q[0],H-0.09,q[1]);l.target.position.set(q[0],0,q[1]);
+    l.castShadow=true;l.shadow.mapSize.set(1024,1024);l.shadow.bias=-0.0005;
+    scene.add(l);scene.add(l.target);l.userData.lv={full:0.9,eve:0,night:0};lights.push(l);
+  });
+
+  // ---------- Interactions ----------
+  var inter=[],MOODS=null;
+  function makeInter(obj,label,apply,start){
+    obj.userData.inter={t:start||0,target:start||0,label:label,apply:apply};inter.push(obj);apply(obj,start||0);
+  }
+
+  // Door (hinged at the south-west corner, opens along the south wall)
+  var doorG=new THREE.Group();doorG.position.set(0.02,0,D-0.01);scene.add(doorG);
+  box(0,0.04,0,2.03,-0.76,0,M.oakDark,{parent:doorG});
+  box(0.04,0.06,1.0,1.03,-0.7,-0.58,M.black,{parent:doorG});box(-0.02,0,1.0,1.03,-0.7,-0.58,M.black,{parent:doorG});
+  makeInter(doorG,'Врата',function(o,k){o.rotation.y=-Math.PI/2*k;o.userData.inter.label=k>0.5?'Затвори вратата':'Отвори вратата';},1);
+  // door frame
+  box(-0.02,0.02,2.05,2.1,0.6,D,M.oakDark);
+
+  // Wood slat cladding on the west wall behind the vanity
+  for(var s=0;s<15;s++){var sz=0.01+s*0.04;box(0,0.025,0,H,sz,sz+0.028,M.oak);}
+
+  // ---------- Vanity: floating oak cabinet with two drawers ----------
+  var vx1=0.05,vx2=0.95,vz=0.5;
+  box(vx1,vx1+0.02,0.45,0.84,0,vz,M.oak);box(vx2-0.02,vx2,0.45,0.84,0,vz,M.oak);
+  box(vx1,vx2,0.45,0.47,0,vz,M.oak);box(vx1,vx2,0.47,0.84,0,0.02,M.oakDark);
+  // ceramic top with a built-in rectangular bowl
+  var bx1=0.28,bx2=0.72,bz1=0.11,bz2=0.42,ty1=0.84,ty2=0.9,by=0.78;
+  box(vx1-0.01,vx2+0.01,ty1,ty2,0,bz1,M.ceramic);box(vx1-0.01,vx2+0.01,ty1,ty2,bz2,vz+0.02,M.ceramic);
+  box(vx1-0.01,bx1,ty1,ty2,bz1,bz2,M.ceramic);box(bx2,vx2+0.01,ty1,ty2,bz1,bz2,M.ceramic);
+  box(bx1,bx2,by,by+0.012,bz1,bz2,M.ceramic,{cast:false});
+  box(bx1,bx1+0.012,by,ty1,bz1,bz2,M.ceramic,{cast:false});box(bx2-0.012,bx2,by,ty1,bz1,bz2,M.ceramic,{cast:false});
+  box(bx1,bx2,by,ty1,bz1,bz1+0.012,M.ceramic,{cast:false});box(bx1,bx2,by,ty1,bz2-0.012,bz2,M.ceramic,{cast:false});
+  cyl(0.5,0.3,0.02,by+0.012,by+0.016,M.black,16);
+  box(vx1+0.05,vx2-0.05,0.442,0.448,vz-0.12,vz-0.1,LED.low,{cast:false,noHit:true});
+  pl(0.5,0.25,0.42,'#ffc488',{full:0.15,eve:0.35,night:0.35},1.1);
+  function drawer(y1,y2,label,items,boxTop){
+    var bt=boxTop||(y2-0.03);
+    var g=new THREE.Group();scene.add(g);
+    box(vx1+0.005,vx2-0.005,y1,y2,vz-0.02,vz,M.oak,{parent:g});
+    box(vx1+0.03,vx2-0.03,y2-0.012,y2,vz-0.004,vz+0.001,M.matteBlack,{parent:g,cast:false});
+    box(vx1+0.03,vx2-0.03,y1+0.01,y1+0.022,0.06,vz-0.02,M.oakDark,{parent:g});
+    box(vx1+0.03,vx1+0.045,y1+0.01,bt,0.06,vz-0.02,M.oakDark,{parent:g});
+    box(vx2-0.045,vx2-0.03,y1+0.01,bt,0.06,vz-0.02,M.oakDark,{parent:g});
+    box(vx1+0.03,vx2-0.03,y1+0.01,bt,0.06,0.075,M.oakDark,{parent:g});
+    items(g,y1+0.022);
+    makeInter(g,label,function(o,k){o.position.z=0.36*k;o.userData.inter.label=(k>0.5?'Затвори ':'Отвори ')+label;});
+  }
+  drawer(0.655,0.835,'горното чекмедже',function(g,y){
+    [[0.2,M.bottle,0.08],[0.3,M.amber,0.07],[0.4,M.pot,0.06]].forEach(function(o){cyl(o[0],0.22,0.028,y,y+o[2],o[1],16,null,g);});
+    box(0.55,0.85,y,y+0.03,0.12,0.3,M.towel2,{parent:g});box(0.55,0.75,y,y+0.04,0.33,0.42,M.pot,{parent:g});
+  },0.765);
+  drawer(0.465,0.645,'долното чекмедже',function(g,y){
+    for(var i=0;i<5;i++){var tw=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.34,20),i%2?M.towel:M.towel2);tw.rotation.x=Math.PI/2;tw.position.set(0.16+i*0.13,y+0.05,0.27);tw.castShadow=true;g.add(tw);}
+  });
+
+  // deck-mounted black mixer behind the bowl
+  cyl(0.5,0.06,0.016,0.9,1.1,M.black,16);box(0.488,0.512,1.08,1.1,0.06,0.2,M.black);box(0.49,0.51,1.05,1.1,0.185,0.2,M.black);
+  box(0.47,0.53,1.0,1.02,0.04,0.07,M.black);
+  // soap + plant on the counter
+  cyl(0.83,0.3,0.03,0.9,1.08,M.bottle,16);cyl(0.83,0.3,0.006,1.08,1.12,M.black,8);
+  cyl(0.85,0.12,0.045,0.9,1.02,glass,20);
+  var seed=rnd(9);
+  for(var e=0;e<34;e++){var lf=new THREE.Mesh(new THREE.IcosahedronGeometry(0.012+seed()*0.012,0),M.leaf);lf.scale.set(1,2,0.4);lf.rotation.set(seed()*3,seed()*3,0);lf.position.set(0.85+(seed()-0.5)*0.12,1.04+seed()*0.18,0.12+(seed()-0.5)*0.1);scene.add(lf);}
+
+  // Round backlit mirror (cube-map reflection), click toggles its light
+  var cubeRT=new THREE.WebGLCubeRenderTarget(256,{format:THREE.RGBFormat,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
+  cubeRT.texture.encoding=THREE.sRGBEncoding;
+  var cubeCam=new THREE.CubeCamera(0.05,8,cubeRT);cubeCam.position.set(0.5,1.6,0.6);scene.add(cubeCam);
+  var mirrorMat=std({color:'#ffffff',metalness:1,roughness:0.02,envMap:cubeRT.texture});
+  var mirrorG=new THREE.Group();scene.add(mirrorG);
+  function rrect(w,h,r){var sh=new THREE.Shape(),x=-w/2,y=-h/2;sh.moveTo(x+r,y);sh.lineTo(x+w-r,y);sh.quadraticCurveTo(x+w,y,x+w,y+r);sh.lineTo(x+w,y+h-r);sh.quadraticCurveTo(x+w,y+h,x+w-r,y+h);sh.lineTo(x+r,y+h);sh.quadraticCurveTo(x,y+h,x,y+h-r);sh.lineTo(x,y+r);sh.quadraticCurveTo(x,y,x+r,y);return new THREE.ShapeGeometry(sh,16);}
+  var MW=0.7,MH=0.95,MY=1.63;
+  var mirror=new THREE.Mesh(rrect(MW,MH,0.14),mirrorMat);mirror.position.set(0.5,MY,0.03);mirrorG.add(mirror);
+  var halo=new THREE.Mesh(rrect(MW+0.035,MH+0.035,0.155),LED.mirror);halo.position.set(0.5,MY,0.02);mirrorG.add(halo);
+  box(0.5-MW/2+0.04,0.5+MW/2-0.04,MY-MH/2+0.04,MY+MH/2-0.04,0.004,0.02,M.matteBlack,{parent:mirrorG,cast:false});
+  var mirrorLight=pl(0.5,1.6,0.25,'#ffd6a4',{full:0.45,eve:0.6,night:0},1.6);
+  var mirrorOn=1;
+  makeInter(mirrorG,'Светлина на огледалото',function(o,k){mirrorOn=k;if(MOODS)applyMood();o.userData.inter.label=k>0.5?'Изгаси огледалото':'Светни огледалото';},1);
+
+  // Two slim pendants beside the mirror
+  [0.075,0.925].forEach(function(x){
+    cyl(x,0.14,0.003,1.62,H,M.black,6);
+    cyl(x,0.14,0.028,1.3,1.62,M.black,24);
+    cyl(x,0.14,0.024,1.295,1.302,LED.pend,24);
+    pl(x,1.25,0.14,'#ffd6a0',{full:0.25,eve:0.35,night:0},1.4);
+  });
+
+  // ---------- Toilet pier with lit niches above ----------
+  var px1=1.12,px2=1.78,pz=0.22;
+  box(px1,px2,0,1.15,0,pz,M.shell);
+  face((px1+px2)/2,0.575,pz+0.001,px2-px1,1.15,0,tileMat(wallTile,px2-px1,1.15));
+  face(px1-0.001,0.575,pz/2,pz,1.15,-Math.PI/2,tileMat(wallTile,pz,1.15));
+  face(px2+0.001,0.575,pz/2,pz,1.15,Math.PI/2,tileMat(wallTile,pz,1.15));
+  box(px1,px1+0.05,1.15,H,0,pz,M.shell);box(px2-0.05,px2,1.15,H,0,pz,M.shell);
+  box(px1,px2,2.32,H,0,pz,M.shell);
+  box(px1,px2,1.14,1.16,0,pz+0.005,M.stone);
+  for(var sl=0;sl<15;sl++){var sx=px1+0.055+sl*0.0365;box(sx,sx+0.024,1.16,2.32,0,0.035,M.oak);}
+  [1.56,1.95].forEach(function(y){
+    box(px1+0.05,px2-0.05,y,y+0.025,0.035,pz,M.oak);
+    box(px1+0.06,px2-0.06,y-0.008,y,pz-0.03,pz-0.02,LED.niche,{cast:false,noHit:true});
+  });
+  box(px1+0.06,px2-0.06,2.312,2.32,pz-0.03,pz-0.02,LED.niche,{cast:false,noHit:true});
+  pl((px1+px2)/2,2.2,0.2,'#ffd2a0',{full:0.2,eve:0.4,night:0.06},0.9);
+  pl((px1+px2)/2,1.45,0.2,'#ffd2a0',{full:0.2,eve:0.35,night:0.06},0.9);
+  // niche decor: rolled towels, bottles, trailing plant
+  for(var r2=0;r2<3;r2++){var tr=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.3,20),M.towel);tr.rotation.z=Math.PI/2;tr.position.set(1.45,1.21+r2*0.065-(r2===2?0.03:0),0.13-(r2===2?0:0));if(r2===2)tr.position.x=1.45;scene.add(tr);}
+  cyl(1.33,0.13,0.028,1.585,1.75,M.bottle,16);cyl(1.42,0.13,0.025,1.585,1.71,M.amber,16);
+  cyl(1.5,0.12,0.05,1.975,2.06,M.pot,24,0.06);
+  for(var iv=0;iv<60;iv++){var a=seed()*6.28,rr=seed()*0.09;var ivl=new THREE.Mesh(new THREE.IcosahedronGeometry(0.014+seed()*0.01,0),M.leaf);ivl.scale.set(1,1.4,0.4);ivl.rotation.set(seed()*3,seed()*3,0);ivl.position.set(1.5+Math.cos(a)*rr,2.06-seed()*(iv<35?0.08:0.38),0.13+Math.sin(a)*rr*0.6);scene.add(ivl);}
+  // flush plate, base LED
+  box(1.36,1.54,0.95,1.08,pz,pz+0.008,M.black);box(1.449,1.451,0.96,1.07,pz+0.008,pz+0.009,M.matteBlack,{cast:false});
+  box(px1+0.02,px2-0.02,0.012,0.022,pz+0.001,pz+0.008,LED.low,{cast:false,noHit:true});
+  // wall-hung toilet
+  var bowl=cyl(1.45,0.47,0.175,0.22,0.4,M.ceramic,48,0.18);bowl.scale.z=1.42;
+  var seat=cyl(1.45,0.47,0.18,0.4,0.43,M.ceramic,48,0.18);seat.scale.z=1.42;
+  // bidet hand shower on the pier side
+  box(px2,px2+0.02,0.7,0.76,0.1,0.14,M.black);cyl(px2+0.035,0.12,0.012,0.6,0.78,M.black,12);cyl(px2+0.03,0.12,0.006,0.3,0.6,M.black,8);
+
+  var southStart=scene.children.length;
+  // ---------- Urinal on the south wall ----------
+  var uG=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.105,0.42,40,1,false,Math.PI/2,Math.PI),std({color:'#f6f4f0',roughness:0.12,side:THREE.DoubleSide}));
+  uG.position.set(1.05,0.83,D);uG.scale.z=1.35;uG.castShadow=true;scene.add(uG);
+  var uBot=new THREE.Mesh(new THREE.CircleGeometry(0.105,40,Math.PI,Math.PI),M.ceramic);uBot.rotation.x=-Math.PI/2;uBot.position.set(1.05,0.621,D);uBot.scale.y=1.35;scene.add(uBot);
+  box(1.01,1.09,1.12,1.19,D-0.008,D,M.black);cyl(1.05,D-0.01,0.008,1.145,1.165,LED.down,12).rotation.x=Math.PI/2;
+  box(0.95,1.15,0.012,0.022,D-0.008,D-0.001,LED.low,{cast:false,noHit:true});
+
+  // ---------- Towel hooks on the south wall: oak rail with black pegs ----------
+  box(1.38,1.98,1.5,1.58,D-0.025,D,M.oak);
+  box(1.4,1.96,1.495,1.5,D-0.02,D-0.004,LED.low,{cast:false,noHit:true});
+  [1.48,1.68,1.88].forEach(function(x,i){
+    var hk=new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,0.07,12),M.black);hk.rotation.x=Math.PI/2;hk.position.set(x,1.54,D-0.06);hk.castShadow=true;scene.add(hk);
+    cyl(x,D-0.095,0.014,1.535,1.545,M.black,12).rotation.x=Math.PI/2;
+    if(i!==1){box(x-0.09,x+0.09,0.95,1.54,D-0.11,D-0.085,i?M.towel:M.towel2);box(x-0.09,x+0.09,0.95,1.54,D-0.06,D-0.035,i?M.towel:M.towel2);}
+    else{box(x-0.06,x+0.06,1.2,1.54,D-0.1,D-0.08,M.towel2);}
+  });
+  box(1.35,1.95,0.012,0.022,D-0.008,D-0.001,LED.low,{cast:false,noHit:true});
+
+  scene.children.slice(southStart).forEach(function(o){walls.S.add(o);});
+  walls.S.add(doorG);
+  // ---------- Walk-in shower ----------
+  var gx=ch1,gz0=CZ,gz=0.9,gh=2.0;
+  box(gx-0.004,gx+0.004,0.005,gh,gz0+0.01,gz,glass,{cast:false,noHit:true});
+  box(gx-0.012,gx+0.012,0,gh,gz0,gz0+0.02,M.black);
+  box(gx-0.006,gx+0.006,0,gh,gz-0.012,gz,M.black);
+  box(gx-0.006,gx+0.006,0,0.012,gz0+0.01,gz,M.black);
+  box(gx-0.006,gx+0.006,gh-0.012,gh,gz0+0.01,gz,M.black);
+  var sdW=D-gz-0.015;
+  var sdG=new THREE.Group();sdG.position.set(gx,0,gz+0.004);scene.add(sdG);
+  box(-0.004,0.004,0.015,gh,0,sdW,glass,{parent:sdG,cast:false});
+  box(-0.006,0.006,0.015,gh,sdW-0.012,sdW,M.black,{parent:sdG});
+  box(-0.006,0.006,gh-0.012,gh,0,sdW,M.black,{parent:sdG});
+  box(-0.006,0.006,0.015,0.027,0,sdW,M.black,{parent:sdG});
+  box(-0.05,0.05,0.95,1.35,sdW-0.07,sdW-0.055,M.black,{parent:sdG});
+  [[-0.03,1.6],[-0.03,0.35]].forEach(function(q){box(-0.012,0.012,q[1],q[1]+0.07,-0.012,0.025,M.black,{parent:sdG});});
+  makeInter(sdG,'Врата на душа',function(o,k){o.rotation.y=-1.45*k;o.userData.inter.label=(k>0.5?'Затвори':'Отвори')+' вратата на душа';});
+  var bar=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,W-gx,10),M.black);bar.rotation.z=Math.PI/2;bar.position.set((gx+W)/2,gh-0.01,gz-0.006);scene.add(bar);
+  // linear drain + floor LED strip
+  box(2.86,2.92,0.001,0.004,0.36,1.32,M.matteBlack,{cast:false});
+  for(var dr=0;dr<24;dr++){box(2.87,2.91,0.0035,0.0045,0.37+dr*0.039,0.38+dr*0.039,M.black,{cast:false});}
+  box(gx+0.03,W-0.02,0.002,0.006,D-0.035,D-0.02,LED.low,{cast:false,noHit:true});
+  pl(2.5,0.12,1.2,'#ffc488',{full:0.12,eve:0.3,night:0.3},1.2);
+  // ceiling rain head
+  cyl(2.57,0.82,0.01,2.28,H-0.08,M.black,12);
+  cyl(2.57,0.82,0.16,2.255,2.28,M.black,48);
+  // mixer + hand shower on the east wall
+  var mix=cyl(2.58,CZ+0.008,0.07,-0.008,0.008,M.black,32);mix.rotation.x=Math.PI/2;mix.position.set(2.58,1.0,CZ+0.008);
+  box(2.57,2.59,0.99,1.01,CZ+0.016,CZ+0.07,M.black);
+  box(2.94,2.96,0.8,1.65,CZ,CZ+0.02,M.black);
+  box(2.92,2.98,1.45,1.5,CZ+0.02,CZ+0.07,M.black);
+  cyl(2.95,CZ+0.07,0.022,1.36,1.6,M.black,16);
+  var hose=new THREE.Mesh(new THREE.TorusGeometry(0.18,0.006,8,40,Math.PI),M.black);hose.position.set(2.77,1.0,CZ+0.04);hose.rotation.z=Math.PI;scene.add(hose);
+
+  // Floor skirting LED along the south and east walls (night light)
+  box(0.82,1.28,0.03,0.04,D-0.012,D-0.002,LED.low,{cast:false,noHit:true,parent:walls.S});
+
+  // ---------- Global light ----------
+  var hemi=new THREE.HemisphereLight('#fbf2e4','#6f6254',0.2);scene.add(hemi);
+
+  MOODS={
+    full:{hemi:0.42,exp:1.0,led:{top:1.1,low:0.8,niche:1.0,mirror:1.3,pend:1.4,down:2.2}},
+    eve:{hemi:0.1,exp:1.35,led:{top:1.7,low:1.4,niche:1.5,mirror:1.7,pend:1.6,down:0}},
+    night:{hemi:0.03,exp:1.6,led:{top:0,low:1.6,niche:0.5,mirror:0,pend:0,down:0}}
+  };
+  var mood='eve';
+  function applyMood(){
+    var m=MOODS[mood];
+    hemi.intensity=m.hemi;renderer.toneMappingExposure=m.exp;
+    lights.forEach(function(l){var v=l.userData.lv[mood];if(l===mirrorLight)v*=mirrorOn;l.intensity=v;});
+    Object.keys(LED).forEach(function(k){LED[k].emissiveIntensity=m.led[k]*(k==='mirror'?mirrorOn:1);});
+    scene.background=new THREE.Color(mood==='full'?'#2a2622':'#15120f');
+    cubeDirty=0;
+  }
+
+  // ---------- Views ----------
+  var views={
+    overview:{pos:[W/2+1.3,3.5,D+2.6],tgt:[W/2,0.8,D/2]},
+    entry:{pos:[0.3,1.6,1.05],tgt:[2.9,1.1,0.45]},
+    sink:{pos:[1.0,1.6,1.25],tgt:[0.45,1.15,0.0]},
+    shower:{pos:[1.65,1.6,1.25],tgt:[2.6,1.15,0.3]},
+    top:{pos:[W/2,6.0,D/2+0.01],tgt:[W/2,0,D/2]}
+  };
+  camera.position.fromArray(views.overview.pos);controls.target.fromArray(views.overview.tgt);controls.update();
+  var tween=null;
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function goTo(n){var v=views[n];tween={t:reduce?1:0,fp:camera.position.clone(),tp:new THREE.Vector3().fromArray(v.pos),ft:controls.target.clone(),tt:new THREE.Vector3().fromArray(v.tgt)};}
+  function ease(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+
+  // ---------- Walk mode ----------
+  var walk=false,yaw=-Math.PI/2,pitch=-0.08,EYE=1.6,R=0.17;
+  var obstacles=[[0,0.97,0,0.52],[1.1,1.8,0,0.24],[1.26,1.64,0,0.73],[0.91,1.19,1.18,D],[2.11,2.15,0.3,0.92],[2.13,W,0,0.3]];
+  function free(x,z){
+    if(x<R||x>W-R||z<R||z>D-R)return false;
+    for(var i=0;i<obstacles.length;i++){var o=obstacles[i];if(x>o[0]-R&&x<o[1]+R&&z>o[2]-R&&z<o[3]+R)return false;}
+    return true;
+  }
+  var pad=document.getElementById('pad'),hint=document.getElementById('hint');
+  function setWalk(on){
+    walk=on;controls.enabled=!on;pad.hidden=!on;tween=null;
+    hint.textContent=on?'WASD или стрелките за движение, влачи за оглеждане':'Влачи за завъртане, скрол или щипване за приближаване';
+    if(on){camera.position.set(0.45,EYE,1.0);yaw=-Math.PI/2;pitch=-0.12;camera.fov=70;camera.updateProjectionMatrix();}
+    else{camera.fov=55;camera.updateProjectionMatrix();}
+  }
+  var keys={};
+  window.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;});
+  window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
+  var padState={};
+  pad.querySelectorAll('button').forEach(function(b){
+    var k=b.getAttribute('data-move');
+    function on(e){e.preventDefault();padState[k]=true;}function off(){padState[k]=false;}
+    b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off);
+  });
+  function walkStep(dt){
+    var f=0,s=0,turn=0;
+    if(keys['w']||keys['arrowup']||padState.f)f+=1;
+    if(keys['s']||keys['arrowdown']||padState.b)f-=1;
+    if(keys['a'])s-=1;if(keys['d'])s+=1;
+    if(keys['arrowleft']||padState.tl)turn+=1;if(keys['arrowright']||padState.tr)turn-=1;
+    yaw+=turn*1.6*dt;
+    var sp=1.1*dt,fx=-Math.sin(yaw),fz=-Math.cos(yaw);
+    var dx=(fx*f+(-fz)*s)*sp,dz=(fz*f+fx*s)*sp;
+    var p=camera.position;
+    if(free(p.x+dx,p.z+dz)){p.x+=dx;p.z+=dz;}else if(free(p.x+dx,p.z)){p.x+=dx;}else if(free(p.x,p.z+dz)){p.z+=dz;}
+    p.y=EYE;camera.rotation.set(pitch,yaw,0);
+  }
+
+  // ---------- Picking ----------
+  var ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),tip=document.getElementById('tip');
+  function shown(o){while(o){if(!o.visible)return false;o=o.parent;}return true;}
+  function pick(cx,cy){
+    var r=renderer.domElement.getBoundingClientRect();
+    ndc.set((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);
+    ray.setFromCamera(ndc,camera);
+    var hits=ray.intersectObjects(scene.children,true);
+    for(var i=0;i<hits.length;i++){
+      var o=hits[i].object;
+      if(o.userData.noHit||!shown(o)||o.isLight)continue;
+      while(o){if(o.userData.inter)return o;o=o.parent;}
+      return null;
+    }
+    return null;
+  }
+  var down=null,dragLook=null;
+  var cvs=renderer.domElement;
+  cvs.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY};if(walk){dragLook={x:e.clientX,y:e.clientY};cvs.setPointerCapture(e.pointerId);}});
+  cvs.addEventListener('pointermove',function(e){
+    if(walk&&dragLook){yaw-=(e.clientX-dragLook.x)*0.005;pitch=Math.max(-1.2,Math.min(1.2,pitch-(e.clientY-dragLook.y)*0.005));dragLook={x:e.clientX,y:e.clientY};}
+    if(e.pointerType==='mouse'&&!down){
+      var o=pick(e.clientX,e.clientY);
+      cvs.style.cursor=o?'pointer':(walk?'grab':'');
+      if(o){tip.hidden=false;tip.textContent=o.userData.inter.label;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';}else tip.hidden=true;
+    }
+  });
+  window.addEventListener('pointerup',function(e){
+    if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<6&&e.target===cvs){
+      var o=pick(e.clientX,e.clientY);
+      if(o){var it=o.userData.inter;it.target=it.target>0.5?0:1;tip.hidden=true;}
+    }
+    down=null;dragLook=null;
+  });
+
+  // ---------- UI ----------
+  function bindGroup(attr,fn){
+    var btns=document.querySelectorAll('button['+attr+']');
+    btns.forEach(function(b){b.addEventListener('click',function(){btns.forEach(function(o){o.setAttribute('aria-pressed',o===b?'true':'false');});fn(b.getAttribute(attr));});});
+  }
+  bindGroup('data-view',function(v){
+    if(v==='walk'){setWalk(true);return;}
+    if(walk)setWalk(false);
+    goTo(v);
+  });
+  bindGroup('data-mood',function(m){mood=m;applyMood();});
+  applyMood();
+
+  function updateCutaway(){
+    var p=camera.position;
+    var hide={N:p.z<-0.05,S:p.z>D+0.05,Wt:p.x<-0.05,E:p.x>W+0.05};
+    Object.keys(walls).forEach(function(k){walls[k].visible=!hide[k];});
+    var ch=p.y>H;
+    ceil.visible=!ch;ceilingObjs.forEach(function(o){o.visible=!ch;});
+  }
+  function resize(){var w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  window.addEventListener('resize',resize);
+
+  var cubeDirty=0,frame=0,last=performance.now();
+  function loop(now){
+    var dt=Math.min((now-last)/1000,0.05);last=now;frame++;
+    var moving=false;
+    inter.forEach(function(o){var it=o.userData.inter;if(Math.abs(it.t-it.target)>0.001){it.t+= (it.target-it.t)*Math.min(1,dt*7);if(Math.abs(it.t-it.target)<0.002)it.t=it.target;it.apply(o,it.t);moving=true;}});
+    if(walk){walkStep(dt);}
+    else{
+      if(tween){tween.t=Math.min(1,tween.t+dt/0.9);var k=ease(tween.t);camera.position.lerpVectors(tween.fp,tween.tp,k);controls.target.lerpVectors(tween.ft,tween.tt,k);if(tween.t>=1)tween=null;}
+      controls.update();
+    }
+    updateCutaway();
+    if(moving)cubeDirty=0;
+    if(cubeDirty<3&&frame%2===0){
+      var vis={};Object.keys(walls).forEach(function(k){vis[k]=walls[k].visible;walls[k].visible=true;});
+      var cv2=ceil.visible;ceil.visible=true;ceilingObjs.forEach(function(o){o.visible=true;});
+      mirrorG.visible=false;cubeCam.update(renderer,scene);mirrorG.visible=true;
+      Object.keys(walls).forEach(function(k){walls[k].visible=vis[k];});ceil.visible=cv2;ceilingObjs.forEach(function(o){o.visible=cv2;});
+      cubeDirty++;
+    }
+    renderer.render(scene,camera);requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
